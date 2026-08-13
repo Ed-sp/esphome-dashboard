@@ -49,16 +49,32 @@ band closes with the collect and the week's numbers.
 
 ## Running it
 
+Offline, against the fixtures — no Home Assistant needed:
+
 ```bash
 pip install -r requirements.txt
 python render_panel.py --sample                      # busy weekday morning
 python render_panel.py --sample --scene quiet        # dull Sunday
-python render_panel.py --sample --scale 2 -o out/big.png
 python tools/icon_sheet.py                           # icon contact sheet
 ```
 
-Both fixtures render without Home Assistant, so the layout can be worked on
-offline. Live rendering is not wired up yet.
+Against live data:
+
+```bash
+python serve.py
+```
+
+Then open <http://127.0.0.1:8099/preview>, which reloads every 30 seconds. Set
+`HA_TOKEN` to a long-lived access token first (Profile → Security in Home
+Assistant); without one the service logs why and serves the fixture scene, so
+the preview still works.
+
+| Route | For |
+| --- | --- |
+| `/panel.png` | The device. Carries an `ETag`; an unchanged render answers 304, so the ESP skips the display refresh entirely. |
+| `/preview` | A browser, for iterating on the layout. |
+| `/next-wake` | Seconds until the device should wake, from presence and the sleep schedule. |
+| `/health` | Whether the last render used live data, and why not if it didn't. |
 
 ## Configuration
 
@@ -80,6 +96,11 @@ is never written to the config.
 | `panel/render/icons.py` | Twenty icons as Pillow primitives, plus HA weather-state mapping. Not a font, so there is no TTF to ship and no glyph list to maintain. |
 | `panel/render/fonts.py` | Font resolution with Windows and Debian fallbacks. |
 | `panel/render/layout.py` | The 800×480 composition. Coordinates match the approved design. |
+| `panel/config.py` | Loads `config.yaml`, and fails loudly on the few mistakes that would otherwise render a silently wrong panel. |
+| `panel/hass.py` | The five REST calls the panel needs. Knows nothing about panels. |
+| `panel/sources/` | One module per region, each returning finished model objects. |
+| `panel/build.py` | Assembles a `Panel` from one state snapshot. Each section is guarded separately. |
+| `panel/server.py` | Flask app, render cache, ETag, and the wake-interval calculation. |
 
 ### One gotcha worth knowing
 
@@ -91,9 +112,21 @@ overrunning its column, that is the first thing to check.
 
 ## Still to build
 
-* Home Assistant client and the data sources (weather, commute, alerts,
-  calendar, stats)
-* Flask server with an ETag and a live preview page
-* Add-on scaffolding — Dockerfile and manifest
-* The collects table, keyed to the liturgical calendar and computed off Easter
-* ESPHome firmware: wake, fetch, compare ETag, draw or skip, sleep
+* **The collect.** Needs a table keyed to the liturgical calendar, computed off
+  Easter. Deliberately not stubbed with invented text — it goes on a wall.
+* **Astronomy.** Eclipses and moon phases from the USNO API, meteor showers from
+  a static annual table.
+* **Add-on packaging.** Dockerfile and manifest.
+* **ESPHome firmware.** Wake, fetch, compare ETag, draw or skip, read
+  `/next-wake`, sleep.
+
+Blocked on Home Assistant configuration rather than on code:
+
+* **Google Calendar** is not connected, so the agenda is empty.
+* **Google Maps Travel Time** sensors do not exist, so the commute block stays
+  collapsed. Turn off automatic polling and drive updates from an automation
+  inside the commute window — three routes at the default 5-minute poll is about
+  26,000 requests a month.
+* **The waste sensor** runs but reports empty strings for every bin, so the
+  alert can never fire. `alerts.py` logs a warning saying exactly this.
+* **Health Connect** sensors are not enabled, so the steps stat shows a dash.
