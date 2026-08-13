@@ -1,0 +1,138 @@
+# Hallway panel configuration.
+# Everything the layout needs to know that isn't a design decision lives here.
+
+panel:
+  width: 800
+  height: 480
+  # "density" | "columns" | "ribbon" — how rain probability is drawn under the temperature curve.
+  rain_style: density
+
+home_assistant:
+  # For the add-on this becomes http://supervisor/core and SUPERVISOR_TOKEN.
+  base_url: http://homeassistant.local:8123
+  token_env: HA_TOKEN
+  timezone: Europe/London
+
+weather:
+  entity: weather.home
+  # Hours of hourly forecast to plot across the graph band.
+  hours: 24
+
+people:
+  - key: ed
+    name: Ed
+    badge: E
+    person: person.edward_speirs
+    calendar: calendar.edward_speirs_gmail_com
+  - key: hannah
+    name: Hannah
+    badge: H
+    person: person.hannah
+    calendar: calendar.hannah
+
+# Commute targets. Ed's is switchable here; Hannah's is fixed for now but uses
+# the same shape so it can gain options later without a code change.
+commute:
+  # Which workplace Ed is currently commuting to. Must match a key under `workplaces`.
+  ed_workplace: yarnton
+
+  workplaces:
+    yarnton:
+      label: Yarnton
+      zone: zone.work_yarnton
+    abingdon:
+      label: Abingdon
+      zone: zone.work_abingdon
+
+  hannah_workplace:
+    label: Oxford
+    zone: zone.work_hannah
+
+  # Travel-time sensors, created by the Google Maps Travel Time integration.
+  sensors:
+    ed_bike: sensor.ed_to_work_bike
+    ed_car: sensor.ed_to_work_car
+    hannah_car: sensor.hannah_to_work_car
+    combined_car: sensor.combined_commute_car
+
+  # Baselines: 30-day median statistics sensors. Left empty until they have history.
+  baselines:
+    ed_bike: sensor.ed_to_work_bike_median
+    ed_car: sensor.ed_to_work_car_median
+    hannah_car: sensor.hannah_to_work_car_median
+    combined_car: sensor.combined_commute_car_median
+
+  rules:
+    # Ed cycles only before this time, and only if the ride window stays dry.
+    bike_cutoff: "07:15"
+    # Past this, the commute block disappears entirely.
+    hide_after: "09:00"
+    # Hannah's direct route is shown from here when Ed is away.
+    hannah_solo_from: "07:00"
+    # Minutes of forecast to check for rain before recommending the bike.
+    ride_window_minutes: 45
+    # Flag "slower than usual" past BOTH of these, whichever is larger.
+    slow_pct: 20
+    slow_minutes: 8
+
+waste:
+  sensor: sensor.next_collection
+  # Attribute name -> how it should be drawn.
+  bins:
+    GREEN BIN: { label: Green bin, icon: recycle }
+    GREY BIN: { label: Grey bin, icon: bin }
+  # Show from this time the evening before until noon on collection day.
+  show_from: "17:00"
+  hide_at: "12:00"
+
+alerts:
+  # Device batteries below this raise a line in "Needs you".
+  battery_below: 20
+  # The panel's own battery only speaks up down here.
+  panel_battery_below: 10
+  panel_rssi_below: -80
+  # Cap so the block can never overflow its band.
+  max_lines: 3
+  plants:
+    - { name: Monstera, sensor: null, days_between_watering: 7 }
+
+calendar:
+  # How many events to list, and how far ahead to look.
+  count: 4
+  days_ahead: 14
+
+stats:
+  # Four slots in the bottom-right block. Each needs `label` and a `kind`.
+  - label: Telly
+    kind: history_hours
+    entities:
+      - media_player.edward_s_fire_tv_cube
+      - media_player.edward_s_firetvstick
+      - media_player.fire_tv
+    state: playing
+  - label: Music
+    kind: history_hours
+    entities:
+      - media_player.lounge
+      - media_player.living_room
+      - media_player.downstairs
+      - media_player.kitchen_dot
+    state: playing
+  - label: Steps · Ed / Hannah
+    kind: pair
+    entities: []          # fill in once Health Connect sensors are enabled
+  - label: Electricity
+    kind: sum_energy
+    entities: []          # fill in with your weekly kWh sensor
+
+collect:
+  # Local table; no network, no scraping.
+  source: data/collects.yaml
+
+refresh:
+  awake_minutes: 20
+  commute_minutes: 10
+  away_minutes: 60
+  asleep_entity: schedule.sleeping
+  wake_after_sleep: "05:45"
+  commute_window: ["06:00", "09:00"]
