@@ -66,12 +66,14 @@ def panel() -> Panel:
             Stat("Steps · Ed / Hannah", "58k / 71k"),
             Stat("Electricity", "84 kWh"),
         ],
+        # 13 August 2026 resolves to Trinity 10, so this matches what the live
+        # collects table returns for the fixture's date.
         collect=Collect(
             title="Collect · Trinity 10",
             text=(
-                "Let your merciful ears, O Lord, be open to the prayers of your humble "
-                "servants; and that they may obtain their petitions make them to ask such "
-                "things as shall please you; through Jesus Christ our Lord."
+                "Let thy merciful ears, O Lord, be open to the prayers of thy humble "
+                "servants; and, that they may obtain their petitions, make them to ask "
+                "such things as shall please thee; through Jesus Christ our Lord."
             ),
         ),
     )

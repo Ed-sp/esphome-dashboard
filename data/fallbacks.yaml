@@ -1,0 +1,90 @@
+# Shown on any day the collects table has no entry for.
+#
+# Psalms are the Coverdale psalter as printed in the Book of Common Prayer,
+# which is why the half-verse is marked with a colon. The epistles are the
+# Authorised Version. Both are old enough to be uncontroversial to reproduce.
+#
+# Chosen for length as well as content: each fits the bottom band at a readable
+# size without the layout having to shrink the type. Keep additions short.
+#
+# The panel picks one by date, so the rotation is stable through the day and
+# the list length decides how long it takes to come round again.
+
+passages:
+  - reference: Psalm 23.1
+    text: "The Lord is my shepherd: therefore can I lack nothing."
+
+  - reference: Romans 15.13
+    text: >-
+      Now the God of hope fill you with all joy and peace in believing, that ye
+      may abound in hope, through the power of the Holy Ghost.
+
+  - reference: Psalm 121.1–2
+    text: >-
+      I will lift up mine eyes unto the hills: from whence cometh my help. My
+      help cometh even from the Lord, who hath made heaven and earth.
+
+  - reference: Philippians 4.7
+    text: >-
+      And the peace of God, which passeth all understanding, shall keep your
+      hearts and minds through Christ Jesus.
+
+  - reference: Psalm 46.1
+    text: "God is our hope and strength: a very present help in trouble."
+
+  - reference: Ephesians 3.16–17
+    text: >-
+      That he would grant you, according to the riches of his glory, to be
+      strengthened with might by his Spirit in the inner man; that Christ may
+      dwell in your hearts by faith.
+
+  - reference: Psalm 90.12
+    text: "So teach us to number our days: that we may apply our hearts unto wisdom."
+
+  - reference: 2 Corinthians 13.14
+    text: >-
+      The grace of the Lord Jesus Christ, and the love of God, and the
+      fellowship of the Holy Ghost, be with you all.
+
+  - reference: Psalm 51.10
+    text: "Make me a clean heart, O God: and renew a right spirit within me."
+
+  - reference: Colossians 3.15
+    text: >-
+      And let the peace of God rule in your hearts, to the which also ye are
+      called in one body; and be ye thankful.
+
+  - reference: Psalm 118.24
+    text: "This is the day which the Lord hath made: we will rejoice and be glad in it."
+
+  - reference: Ephesians 6.10
+    text: "Be strong in the Lord, and in the power of his might."
+
+  - reference: Psalm 19.14
+    text: >-
+      Let the words of my mouth, and the meditation of my heart, be alway
+      acceptable in thy sight: O Lord, my strength and my redeemer.
+
+  - reference: 1 Thessalonians 5.23
+    text: >-
+      And the very God of peace sanctify you wholly; and I pray God your whole
+      spirit and soul and body be preserved blameless.
+
+  - reference: Psalm 130.1
+    text: "Out of the deep have I called unto thee, O Lord: Lord, hear my voice."
+
+  - reference: 2 Thessalonians 3.16
+    text: >-
+      Now the Lord of peace himself give you peace always by all means. The
+      Lord be with you all.
+
+  - reference: Psalm 34.8
+    text: >-
+      O taste, and see, how gracious the Lord is: blessed is the man that
+      trusteth in him.
+
+  - reference: Romans 8.38–39
+    text: >-
+      For I am persuaded, that neither death, nor life, nor things present, nor
+      things to come, shall be able to separate us from the love of God, which
+      is in Christ Jesus our Lord.

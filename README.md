@@ -110,10 +110,39 @@ metrics and under-reports by roughly 50px across a line of body text. Every
 measurement in `canvas.py` passes `mode="1"` explicitly. If text starts
 overrunning its column, that is the first thing to check.
 
+## The collect
+
+`panel/liturgy.py` computes the church calendar rather than tabulating it:
+Easter drives the movable feasts, Advent Sunday follows from Christmas Day, and
+everything else falls out of those two. Nothing needs updating year to year.
+
+Because a Sunday's collect carries through the following weekdays, `key_for`
+resolves any date back to the day governing it — a principal feast if the date
+is one, otherwise the most recent Sunday. That turns 365 entries into 63.
+
+[`data/collects.yaml`](data/collects.yaml) holds the BCP 1662 collects in
+traditional wording. Common Worship texts are in copyright and are not included.
+**The entries were written from memory and should be checked against a printed
+copy** — the wording of a collect matters.
+
+Any key with no entry falls back to [`data/fallbacks.yaml`](data/fallbacks.yaml),
+a short psalm or Pauline prayer picked by date so it is stable through the day
+and rotates across days. That is the intended behaviour, not a gap to be filled
+in a hurry with something approximate.
+
+```bash
+python tools/liturgy_year.py            # every key this year, and its date
+python tools/liturgy_year.py --missing  # just the gaps
+python tools/liturgy_year.py 2027       # any year
+```
+
+Collects vary from one sentence to a full paragraph, so the layout picks a type
+size that fits rather than clipping a prayer mid-line: it tries 13px over three
+lines first and steps down to 10px over five, choosing the first that holds the
+whole text.
+
 ## Still to build
 
-* **The collect.** Needs a table keyed to the liturgical calendar, computed off
-  Easter. Deliberately not stubbed with invented text — it goes on a wall.
 * **Astronomy.** Eclipses and moon phases from the USNO API, meteor showers from
   a static annual table.
 * **Add-on packaging.** Dockerfile and manifest.

@@ -253,15 +253,39 @@ STATS_X = (552, 788)
 STAT_TOP = 428
 STAT_STEP = 15
 
+# (size, leading, max lines, first baseline). Tried in order; the first that
+# holds the whole text wins. A collect runs anywhere from one sentence to a
+# paragraph, so a fixed size would either clip the long ones mid-prayer or set
+# the short ones far too small.
+COLLECT_LADDER = [
+    (13, 17, 3, 431),
+    (12, 15, 4, 426),
+    (11, 14, 5, 420),
+    (10, 13, 5, 424),
+]
+
+
+def _fit_collect(c: Canvas, text: str, width: float):
+    for size, leading, max_lines, first in COLLECT_LADDER:
+        style = Text("serif", size)
+        lines = c.wrap(text, style, width)
+        if len(lines) <= max_lines:
+            return style, lines, leading, first
+
+    size, leading, max_lines, first = COLLECT_LADDER[-1]
+    style = Text("serif", size)
+    return style, c.wrap(text, style, width, max_lines=max_lines), leading, first
+
 
 def _bottom(c: Canvas, p: Panel) -> None:
     c.rule(M, BOTTOM_RULE_Y, RIGHT[1], BOTTOM_RULE_Y, weight=2)
 
     if p.collect:
         _eyebrow(c, M, 410, p.collect.title)
-        lines = c.wrap(p.collect.text, SERIF, COLLECT_X[1] - COLLECT_X[0], max_lines=3)
+        width = COLLECT_X[1] - COLLECT_X[0]
+        style, lines, leading, first = _fit_collect(c, p.collect.text, width)
         for i, line in enumerate(lines):
-            c.text(M, 431 + i * 17, line, SERIF)
+            c.text(M, first + i * leading, line, style)
 
     if p.stats:
         c.rule(536, 400, 536, 472, tone="light")

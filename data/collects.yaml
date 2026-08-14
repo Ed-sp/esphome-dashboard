@@ -1,0 +1,150 @@
+# Collects, keyed by panel/liturgy.py.
+#
+# PROVENANCE AND A WARNING
+#
+# These are the Book of Common Prayer (1662) collects in their traditional
+# wording, which is why they are all "thee" and "thou" rather than Common
+# Worship's contemporary language. Common Worship texts are in copyright
+# (© The Archbishops' Council) and are not reproduced here.
+#
+# In the UK the 1662 Prayer Book is Crown copyright administered by Cambridge
+# University Press. Domestic and personal use of this kind is not in question,
+# but it is worth knowing before this ends up anywhere public.
+#
+# CHECK THESE AGAINST A PRINTED COPY BEFORE YOU TRUST THEM. They were written
+# from memory and the wording of a collect matters. Any key not listed here
+# falls back to data/fallbacks.yaml, which is the intended behaviour rather
+# than a gap to be filled in a hurry with something approximate.
+#
+# To see what is still missing:
+#     python tools/liturgy_year.py --missing
+
+collects:
+  advent-1:
+    source: BCP 1662
+    text: >-
+      Almighty God, give us grace that we may cast away the works of darkness
+      and put upon us the armour of light, now in the time of this mortal life
+      in which thy Son Jesus Christ came to us in great humility; that on the
+      last day, when he shall come again in his glorious majesty to judge the
+      living and the dead, we may rise to the life immortal.
+
+  advent-2:
+    source: BCP 1662
+    text: >-
+      Blessed Lord, who hast caused all holy Scriptures to be written for our
+      learning: help us so to hear them, to read, mark, learn and inwardly
+      digest them that, through patience and the comfort of thy holy Word, we
+      may embrace and for ever hold fast the blessed hope of everlasting life,
+      which thou hast given us in our Saviour Jesus Christ.
+
+  christmas-day:
+    source: BCP 1662
+    text: >-
+      Almighty God, who hast given us thy only-begotten Son to take our nature
+      upon him and as at this time to be born of a pure Virgin: grant that we,
+      being regenerate and made thy children by adoption and grace, may daily
+      be renewed by thy Holy Spirit; through Jesus Christ our Lord.
+
+  epiphany:
+    source: BCP 1662
+    text: >-
+      O God, who by the leading of a star didst manifest thy only-begotten Son
+      to the peoples of the earth: mercifully grant that we, who know thee now
+      by faith, may at last behold thy glory face to face; through Jesus Christ
+      our Lord.
+
+  presentation:
+    source: BCP 1662
+    text: >-
+      Almighty and everliving God, we humbly beseech thy majesty that, as thy
+      only-begotten Son was this day presented in the temple, so we may be
+      presented unto thee with pure and clean hearts; through Jesus Christ our
+      Lord.
+
+  ash-wednesday:
+    source: BCP 1662
+    text: >-
+      Almighty and everlasting God, who hatest nothing that thou hast made and
+      dost forgive the sins of all those who are penitent: create and make in
+      us new and contrite hearts, that we, worthily lamenting our sins and
+      acknowledging our wretchedness, may obtain of thee, the God of all mercy,
+      perfect remission and forgiveness; through Jesus Christ our Lord.
+
+  lent-1:
+    source: BCP 1662
+    text: >-
+      Almighty God, whose blessed Son was led by the Spirit to be tempted of
+      Satan: give us grace to use such abstinence that, our flesh being subdued
+      to the Spirit, we may ever obey thy godly motions in righteousness and
+      true holiness; through Jesus Christ our Lord.
+
+  palm-sunday:
+    source: BCP 1662
+    text: >-
+      Almighty and everlasting God, who of thy tender love towards mankind hast
+      sent thy Son our Saviour Jesus Christ to take upon him our flesh and to
+      suffer death upon the cross, that all mankind should follow the example
+      of his great humility: mercifully grant that we may both follow the
+      example of his patience and also be made partakers of his resurrection;
+      through Jesus Christ our Lord.
+
+  good-friday:
+    source: BCP 1662
+    text: >-
+      Almighty God, we beseech thee graciously to behold this thy family, for
+      which our Lord Jesus Christ was contented to be betrayed and given up
+      into the hands of wicked men, and to suffer death upon the cross; who now
+      liveth and reigneth with thee and the Holy Spirit, one God, for ever and
+      ever.
+
+  easter-day:
+    source: BCP 1662
+    text: >-
+      Almighty God, who through thine only-begotten Son Jesus Christ hast
+      overcome death and opened unto us the gate of everlasting life: grant
+      that we, who celebrate with joy the day of the Lord's resurrection, may
+      be raised from the death of sin by thy life-giving Spirit; through Jesus
+      Christ our Lord.
+
+  ascension:
+    source: BCP 1662
+    text: >-
+      Grant, we beseech thee, Almighty God, that like as we do believe thy
+      only-begotten Son our Lord Jesus Christ to have ascended into the
+      heavens, so we may also in heart and mind thither ascend and with him
+      continually dwell; who liveth and reigneth with thee and the Holy Spirit,
+      one God, for ever and ever.
+
+  pentecost:
+    source: BCP 1662
+    text: >-
+      God, who as at this time didst teach the hearts of thy faithful people by
+      sending to them the light of thy Holy Spirit: grant us by the same Spirit
+      to have a right judgement in all things and evermore to rejoice in his
+      holy comfort; through the merits of Christ Jesus our Saviour.
+
+  trinity-sunday:
+    source: BCP 1662
+    text: >-
+      Almighty and everlasting God, who hast given unto us thy servants grace,
+      by the confession of a true faith, to acknowledge the glory of the
+      eternal Trinity and in the power of the divine majesty to worship the
+      Unity: keep us steadfast in this faith and evermore defend us from all
+      adversities; through Jesus Christ our Lord.
+
+  trinity-10:
+    source: BCP 1662
+    text: >-
+      Let thy merciful ears, O Lord, be open to the prayers of thy humble
+      servants; and, that they may obtain their petitions, make them to ask
+      such things as shall please thee; through Jesus Christ our Lord.
+
+  all-saints:
+    source: BCP 1662
+    text: >-
+      Almighty God, who hast knit together thine elect in one communion and
+      fellowship in the mystical body of thy Son Christ our Lord: grant us
+      grace so to follow thy blessed saints in all virtuous and godly living
+      that we may come to those unspeakable joys which thou hast prepared for
+      those who unfeignedly love thee; through Jesus Christ our Lord.

@@ -121,27 +121,33 @@ class Canvas:
             cursor += style.font.getlength(char, mode=self._FONT_MODE) + style.tracking
         return cursor - style.tracking
 
-    def wrap(self, text: str, style: Text, max_width: float, max_lines: int) -> list[str]:
-        """Greedy word wrap. Overflow is truncated with an ellipsis on the last line."""
-        words = text.split()
+    def wrap(
+        self, text: str, style: Text, max_width: float, max_lines: int | None = None
+    ) -> list[str]:
+        """Greedy word wrap.
+
+        With `max_lines` set, anything past the limit is folded onto the last
+        line and truncated with an ellipsis. Leave it None to find out how many
+        lines the text actually wants -- which is how the collect block picks a
+        type size that fits rather than clipping a prayer mid-sentence.
+        """
         lines: list[str] = []
         current = ""
-        for word in words:
+        for word in text.split():
             candidate = f"{current} {word}".strip()
             if current and self.measure(candidate, style) > max_width:
                 lines.append(current)
                 current = word
-                if len(lines) == max_lines:
-                    break
             else:
                 current = candidate
-        if current and len(lines) < max_lines:
+        if current:
             lines.append(current)
 
-        if len(lines) == max_lines and (len(lines) < len(words)):
-            remaining = " ".join(words[sum(len(l.split()) for l in lines):])
-            if remaining:
-                lines[-1] = self.ellipsize(lines[-1] + " " + remaining, style, max_width)
+        if max_lines is not None and len(lines) > max_lines:
+            kept = lines[:max_lines]
+            overflow = " ".join(lines[max_lines:])
+            kept[-1] = self.ellipsize(f"{kept[-1]} {overflow}", style, max_width)
+            lines = kept
         return lines
 
     def ellipsize(self, text: str, style: Text, max_width: float) -> str:
