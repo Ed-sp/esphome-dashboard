@@ -242,8 +242,11 @@ def _next_up(c: Canvas, events: list[Event], sky: str | None) -> None:
         c.text(536, cy + 15, c.ellipsize(event.title, BODY, RIGHT[1] - 536), BODY)
 
     if sky:
+        # Two lines, because the eclipse entries carry the detail that makes them
+        # worth acting on -- what time, and whether it will still be up.
         icons.paste(c.image, "spark", RIGHT[0], 352, 13)
-        c.text(530, 363, c.ellipsize(sky, SMALL, RIGHT[1] - 530), SMALL)
+        for i, line in enumerate(c.wrap(sky, SMALL, RIGHT[1] - 530, max_lines=2)):
+            c.text(530, 363 + i * 14, line, SMALL)
 
 
 # ------------------------------------------------------------ bottom band

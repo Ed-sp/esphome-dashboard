@@ -141,10 +141,32 @@ size that fits rather than clipping a prayer mid-line: it tries 13px over three
 lines first and steps down to 10px over five, choosing the first that holds the
 whole text.
 
-## Still to build
+## The sky line
 
-* **Astronomy.** Eclipses and moon phases from the USNO API, meteor showers from
-  a static annual table.
+One line under the calendar, when there is something worth going outside for.
+On 218 days of 2026 there is nothing and the line does not appear at all, which
+is the intended behaviour.
+
+Meteor showers and eclipses come from [`data/sky.yaml`](data/sky.yaml). Shower
+peaks land within a day of the same date each year and eclipse dates are known
+centuries ahead, so fetching them would add a network dependency and a failure
+mode in exchange for nothing. Eclipse entries were checked against
+timeanddate.com and the Royal Observatory rather than written from memory, and
+the notes say what the UK actually gets — the August 2027 "total" is a partial
+here, about a third covered.
+
+Moon phases are computed, using Meeus chapter 49. The tempting shortcut — mean
+synodic month counted from a known new moon — is wrong by up to fourteen hours
+because the Moon's orbit is eccentric, which names the wrong day often enough to
+matter. The periodic terms bring it inside a few minutes.
+
+That calculation validates itself rather neatly: solar eclipses only occur at
+new moon and lunar eclipses only at full moon, so the verified eclipse dates
+double as test vectors. All seven land on the computed day, and the 28 August
+2026 full moon computes to 05:19 BST against a published greatest eclipse of
+05:12.
+
+## Still to build
 * **Add-on packaging.** Dockerfile and manifest.
 * **ESPHome firmware.** Wake, fetch, compare ETag, draw or skip, read
   `/next-wake`, sleep.

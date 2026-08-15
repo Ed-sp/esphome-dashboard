@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 from .config import Config
 from .hass import Hass
 from .model import Panel
-from .sources import agenda, alerts, collect, commute, stats, weather
+from .sources import agenda, alerts, collect, commute, sky, stats, weather
 
 log = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ def build(config: Config, hass: Hass) -> Panel:
             ),
             [],
         ),
-        sky=None,  # astronomy source not wired up yet
+        sky=guarded("sky", lambda: sky.line(datetime.now(tz).date(), tz=tz), None),
         stats=guarded("stats", lambda: stats.build(hass, states, config.stats), []),
         collect=guarded("collect", lambda: collect.for_date(datetime.now(tz).date()), None),
     )

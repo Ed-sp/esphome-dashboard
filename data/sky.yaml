@@ -1,0 +1,119 @@
+# Things worth looking up for, seen from Oxfordshire.
+#
+# Static rather than fetched. Meteor shower peaks land within a day of the same
+# date every year, and eclipse dates are known centuries ahead, so an API would
+# add a network dependency and a failure mode in exchange for nothing. Moon
+# phases are computed in sky.py rather than listed.
+#
+# `rank` breaks ties when two things fall in the same week. Higher wins.
+
+showers:
+  # Peaks are the night of `peak`, meaning late that evening into the small
+  # hours of the following morning.
+  - name: Quadrantids
+    peak: 01-03
+    zhr: 110
+    rank: 6
+    note: sharp peak, only a few hours
+
+  - name: Lyrids
+    peak: 04-22
+    zhr: 18
+    rank: 4
+    note: after midnight
+
+  - name: Eta Aquariids
+    peak: 05-06
+    zhr: 50
+    rank: 2
+    note: radiant stays low from the UK
+
+  - name: Perseids
+    peak: 08-12
+    zhr: 100
+    rank: 7
+    note: after 23:00
+
+  - name: Orionids
+    peak: 10-21
+    zhr: 20
+    rank: 4
+    note: after midnight
+
+  - name: Leonids
+    peak: 11-17
+    zhr: 15
+    rank: 3
+    note: before dawn
+
+  - name: Geminids
+    peak: 12-13
+    zhr: 150
+    rank: 7
+    note: good all evening
+
+  - name: Ursids
+    peak: 12-22
+    zhr: 10
+    rank: 2
+    note: before dawn
+
+# Verified against timeanddate.com and the Royal Observatory Greenwich rather
+# than written from memory. `note` is what the UK actually gets, which is often
+# a good deal less than the headline -- the August 2027 total is a partial here.
+eclipses:
+  - date: 2026-08-28
+    time: "05:12"
+    kind: Partial lunar eclipse
+    rank: 9
+    note: 93% at dawn, Moon sets during it
+
+  - date: 2027-02-20
+    kind: Penumbral lunar eclipse
+    rank: 5
+    note: subtle, easily missed
+
+  - date: 2027-08-02
+    kind: Partial solar eclipse
+    rank: 8
+    note: about a third covered from here
+
+  - date: 2027-08-17
+    kind: Penumbral lunar eclipse
+    rank: 5
+    note: subtle, easily missed
+
+  - date: 2028-01-12
+    kind: Partial lunar eclipse
+    rank: 7
+
+  - date: 2028-01-26
+    kind: Annular solar eclipse
+    rank: 8
+    note: partial from the UK
+
+  - date: 2028-07-06
+    kind: Partial lunar eclipse
+    rank: 7
+
+  - date: 2028-12-31
+    time: "16:16"
+    kind: Total lunar eclipse
+    rank: 10
+    note: totality 16:16 to 17:27
+
+  - date: 2029-06-12
+    kind: Partial solar eclipse
+    rank: 8
+
+  - date: 2029-06-26
+    time: "03:31"
+    kind: Total lunar eclipse
+    rank: 10
+    note: totality 03:31 to 05:13
+
+  - date: 2029-12-20
+    time: "22:15"
+    kind: Total lunar eclipse
+    rank: 10
+    note: totality 22:15 to 23:08
