@@ -129,6 +129,20 @@ collect:
   # Local table; no network, no scraping.
   source: data/collects.yaml
 
+sky:
+  # How far ahead to look for eclipses, meteor showers and the full moon.
+  lookahead_days: 7
+
+  aurora:
+    enabled: true
+    # AuroraWatch UK's four levels are green, yellow, amber and red, calibrated
+    # to UK latitudes. From Oxfordshire, amber means "worth looking north" and
+    # red means "go outside". Set to red if amber turns out to be noise.
+    threshold: amber
+    # Lancaster ask for no more than one request every 3 minutes. This is the
+    # interval between fetches; 15 is still far fresher than the panel refreshes.
+    poll_minutes: 15
+
 refresh:
   awake_minutes: 20
   commute_minutes: 10

@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 from .config import Config
 from .hass import Hass
 from .model import Panel
-from .sources import agenda, alerts, collect, commute, sky, stats, weather
+from .sources import agenda, alerts, aurora, collect, commute, sky, stats, weather
 
 log = logging.getLogger(__name__)
 
@@ -24,6 +24,20 @@ def _date_label(tz: ZoneInfo) -> str:
     now = datetime.now(tz)
     # %-d is glibc-only and %#d is Windows-only, so strip the pad by hand.
     return f"{now.strftime('%A')} {now.day} {now.strftime('%B')}"
+
+
+def _sky_line(config: Config, tz: ZoneInfo) -> str | None:
+    """Computed sky events, with any live alert folded in alongside them."""
+    today = datetime.now(tz).date()
+    settings = config.raw.get("sky", {}) or {}
+
+    extra: list[sky.SkyEvent] = []
+    alert = aurora.line(settings.get("aurora"))
+    if alert:
+        text, rank = alert
+        extra.append(sky.SkyEvent(when=today, text=text, rank=rank))
+
+    return sky.line(today, days=settings.get("lookahead_days", 7), tz=tz, extra=extra)
 
 
 def build(config: Config, hass: Hass) -> Panel:
@@ -66,7 +80,7 @@ def build(config: Config, hass: Hass) -> Panel:
             ),
             [],
         ),
-        sky=guarded("sky", lambda: sky.line(datetime.now(tz).date(), tz=tz), None),
+        sky=guarded("sky", lambda: _sky_line(config, tz), None),
         stats=guarded("stats", lambda: stats.build(hass, states, config.stats), []),
         collect=guarded("collect", lambda: collect.for_date(datetime.now(tz).date()), None),
     )

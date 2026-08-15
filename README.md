@@ -166,6 +166,33 @@ double as test vectors. All seven land on the computed day, and the 28 August
 2026 full moon computes to 05:19 BST against a published greatest eclipse of
 05:12.
 
+### Aurora
+
+The one thing here that has to be fetched, because it is about tonight rather
+than about orbital mechanics. [AuroraWatch UK](https://aurorawatch.lancs.ac.uk/)
+run magnetometers in the UK and publish a four-level alert calibrated to *British*
+latitudes — which is why this beats reading a raw Kp index, since Kp 6 means
+something very different in Shetland than in Oxfordshire.
+
+Their XML API is used rather than the RSS feed: versioned, documented, and it
+returns a machine-readable `status_id` instead of a headline to regex. Two
+obligations come with it, both honoured in `aurora.py` — poll no faster than
+every three minutes (the default here is fifteen), and send a descriptive
+User-Agent. Their docs also ask that the published thresholds are not adjusted,
+so the code maps levels to wording without inventing intermediate states; what
+`config.yaml` controls is which level is worth interrupting the panel for.
+
+A red alert outranks every fixed event, including a total lunar eclipse. An
+eclipse is predictable a decade out and you can plan around it; an aurora
+visible from Oxfordshire is rare and happening now.
+
+If the fetch fails the last reading is kept rather than cleared. A stale green
+is harmless, and a stale red for one refresh is better than dropping an alert
+because the wifi hiccuped.
+
+Adding another live feed — ISS passes, say — means returning a `SkyEvent` and
+appending it in `build._sky_line`.
+
 ## Still to build
 * **Add-on packaging.** Dockerfile and manifest.
 * **ESPHome firmware.** Wake, fetch, compare ETag, draw or skip, read

@@ -193,8 +193,18 @@ def _full_moon(today: date, horizon: date, tz) -> list[SkyEvent]:
     return [SkyEvent(when, f"Full moon {_when_word(when, today)}", 1)]
 
 
-def line(today: date | None = None, *, days: int = 7, tz=timezone.utc) -> str | None:
+def line(
+    today: date | None = None,
+    *,
+    days: int = 7,
+    tz=timezone.utc,
+    extra: list[SkyEvent] | None = None,
+) -> str | None:
     """The single most interesting thing happening in the next `days`, or None.
+
+    `extra` carries anything that had to be fetched rather than computed -- the
+    aurora alert today, ISS passes if they ever get added. Those are dated today
+    and ranked high, since a live alert is by definition about right now.
 
     Returning None is normal and the layout drops the line entirely -- most weeks
     genuinely have nothing worth walking outside for.
@@ -203,6 +213,7 @@ def line(today: date | None = None, *, days: int = 7, tz=timezone.utc) -> str | 
     horizon = today + timedelta(days=days)
 
     events = _eclipses(today, horizon) + _showers(today, horizon) + _full_moon(today, horizon, tz)
+    events += extra or []
     if not events:
         return None
 
