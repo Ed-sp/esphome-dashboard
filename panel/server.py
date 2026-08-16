@@ -24,10 +24,9 @@ from zoneinfo import ZoneInfo
 from flask import Flask, Response, jsonify, request
 
 from . import build as builder
-from . import sample
 from .config import Config, ConfigError, load
 from .hass import Hass, HassError
-from .render import layout
+from .render import fallback, layout
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +46,17 @@ class Renderer:
         # when it was last rendered: re-rendering identical pixels must not move
         # this, or If-Modified-Since would never match.
         self._changed_at: datetime = datetime.now(timezone.utc)
+        # When Home Assistant was last actually reached. None until it has been.
+        self._last_success: datetime | None = None
+        self.stale_after = int(
+            config.raw.get("refresh", {}).get("trust_last_render_hours", 6) * 3600
+        )
+
+    def _outage_age(self) -> float | None:
+        """Seconds since the last successful render, or None if there never was one."""
+        if self._last_success is None:
+            return None
+        return (datetime.now(timezone.utc) - self._last_success).total_seconds()
 
     @property
     def stale(self) -> bool:
@@ -60,15 +70,36 @@ class Renderer:
             hass = Hass(self.config.base_url, self.config.token)
             panel = builder.build(self.config, hass)
             self._error = None
+            self._last_success = datetime.now(timezone.utc)
         except (HassError, ConfigError) as exc:
             log.error("live render failed: %s", exc)
             self._error = str(exc)
-            if self._png and self._etag:
-                # Keep serving the last good image rather than going blank.
-                return self._png, self._etag
-            panel = sample.panel()
 
-        png = layout.render(panel).to_png_bytes()
+            age = self._outage_age()
+            if self._png and self._etag and age is not None and age < self.stale_after:
+                # A forecast an hour old is still roughly right, and a panel that
+                # blanks at the first dropped packet is worse than a slightly
+                # stale one. Keep showing the last good image.
+                log.info("serving the last good render, %.0f min old", age / 60)
+                return self._png, self._etag
+
+            # Past that, the image should not be trusted. Deliberately NOT the
+            # fixture scene: invented weather that looks real would send someone
+            # out of the door dressed for the wrong day.
+            log.warning("no trustworthy render available; showing the fallback screen")
+            panel = None
+
+        if panel is None:
+            canvas = fallback.render(
+                reason=self._error,
+                last_good=self._last_success.astimezone(ZoneInfo(self.config.timezone))
+                if self._last_success
+                else None,
+            )
+        else:
+            canvas = layout.render(panel)
+
+        png = canvas.to_png_bytes()
         etag = hashlib.sha256(png).hexdigest()[:16]
 
         if etag != self._etag:
@@ -80,6 +111,13 @@ class Renderer:
     @property
     def changed_at(self) -> datetime:
         return self._changed_at
+
+    @property
+    def showing_fallback(self) -> bool:
+        if self._error is None:
+            return False
+        age = self._outage_age()
+        return age is None or age >= self.stale_after
 
     @property
     def error(self) -> str | None:
@@ -216,11 +254,14 @@ def create_app(config: Config | None = None) -> Flask:
 
     @app.get("/health")
     def health() -> Response:
+        outage = renderer._outage_age()
         return jsonify(
             {
                 "ok": renderer.error is None,
                 "error": renderer.error,
                 "render_age_seconds": round(renderer.age_seconds, 1),
+                "seconds_since_home_assistant": round(outage, 1) if outage else outage,
+                "showing_fallback": renderer.showing_fallback,
                 "cache_seconds": CACHE_SECONDS,
             }
         )

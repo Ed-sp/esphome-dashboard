@@ -167,6 +167,12 @@ sky:
       poll_minutes: 15
 
 refresh:
+  # How long the last good render stays trustworthy once Home Assistant stops
+  # answering. Inside this, the panel keeps showing it -- an hour-old forecast is
+  # still roughly right. Past it, the fallback screen appears instead, because a
+  # stale panel that looks current is worse than one that admits it does not know.
+  trust_last_render_hours: 6
+
   awake_minutes: 20
   commute_minutes: 10
   away_minutes: 60

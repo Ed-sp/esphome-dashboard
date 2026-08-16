@@ -32,14 +32,26 @@ substitutions:
   # the case where the panel service cannot be reached at all.
   fallback_sleep: 30min
 
-  # Waveshare's own ESP32 e-Paper Driver Board. A LILYGO T5 or a FireBeetle
-  # wires the panel differently -- check the silkscreen before flashing.
+  # Wiring for a FireBeetle 2 ESP32-E. The panel is not pre-wired on this board,
+  # so these are a choice rather than a fact -- but a considered one:
+  #
+  #   * CLK and MOSI are the hardware VSPI pins, labelled SCK and MOSI on the
+  #     silkscreen.
+  #   * The four control pins avoid every strapping pin. IO0, IO2, IO12 and IO15
+  #     all change how the ESP32 boots if something holds them at the wrong
+  #     level, and an e-paper panel asserting CS or RST during reset is exactly
+  #     the sort of thing that causes an intermittent brick.
+  #   * IO34-39 are input-only on this board and IO34 already carries the
+  #     battery divider, so none of them are used here.
+  #
+  # For Waveshare's own ESP32 driver board instead:
+  #   busy 25, reset 26, dc 27, cs 15, clk 13, mosi 14
   pin_busy: GPIO25
   pin_reset: GPIO26
-  pin_dc: GPIO27
-  pin_cs: GPIO15
-  pin_clk: GPIO13
-  pin_mosi: GPIO14
+  pin_dc: GPIO14
+  pin_cs: GPIO13
+  pin_clk: GPIO18
+  pin_mosi: GPIO23
 
 esphome:
   name: ${device_name}
@@ -51,7 +63,14 @@ esphome:
       - script.execute: refresh_cycle
 
 esp32:
-  board: esp32dev
+  # FireBeetle 2 ESP32-E (DFR0654). A good choice for this: its deep-sleep floor
+  # is around 13 uA, where a typical dev board leaks milliamps through the power
+  # LED and USB-serial chip and quietly decides your battery life regardless of
+  # how cleverly the wake schedule is arranged.
+  #
+  # The older FireBeetle ESP32 (DFR0478) is `firebeetle32`, and its battery
+  # divider is not always populated -- check before trusting the reading.
+  board: dfrobot_firebeetle2_esp32e
   framework:
     type: esp-idf
 
@@ -245,10 +264,12 @@ sensor:
     name: "Signal"
     update_interval: 60s
 
-  # Battery, via a divider on an ADC pin. The Waveshare driver board has no
-  # battery monitoring of its own, so this assumes one was added; delete the
-  # block if not. attenuation 12db reads up to ~3.1V, and a 2:1 divider puts a
-  # 4.2V cell inside that.
+  # The FireBeetle 2 ESP32-E has this built in: IO34 sits on a 1M/1M divider off
+  # VBAT, halving a LiPo's 4.2V into what the ADC can survive. 12db attenuation
+  # reads to about 3.1V, so the multiply puts it back into real volts.
+  #
+  # Only a handful of readings get taken before the device sleeps again, and the
+  # ESP32's ADC is noisy, so it is averaged rather than reported raw.
   - platform: adc
     pin: GPIO34
     name: "Battery"
@@ -256,6 +277,10 @@ sensor:
     unit_of_measurement: V
     accuracy_decimals: 2
     attenuation: 12db
-    update_interval: 60s
+    update_interval: 10s
+    samples: 8
     filters:
       - multiply: 2.0
+      - median:
+          window_size: 3
+          send_every: 3

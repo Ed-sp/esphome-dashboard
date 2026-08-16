@@ -1,0 +1,34 @@
+# Shown on the fallback screen, when the panel cannot reach Home Assistant and
+# has nothing recent enough to keep displaying.
+#
+# Two lines each, because that is what the layout sets: a setup and a punchline.
+# Keep them short -- the second line is centred at 21px and the column is 720px.
+#
+# The point is to make an error state legible from across the hall without it
+# looking like a crash. Anything that would stop being funny on the fourth
+# reading in a week is the wrong length.
+
+jokes:
+  - setup: "Why do e-ink screens make unreliable witnesses?"
+    punchline: "They keep seeing things that aren't there any more."
+
+  - setup: "The hallway panel is having a quiet think."
+    punchline: "It will be back when the house starts answering again."
+
+  - setup: "Why did the smart home stop talking?"
+    punchline: "It had run out of things to automate and started brooding."
+
+  - setup: "This panel knows exactly what the weather is doing."
+    punchline: "It simply has no way of telling you at the moment."
+
+  - setup: "Why don't e-paper displays gossip?"
+    punchline: "It takes them fifteen seconds to change their expression."
+
+  - setup: "Somewhere between here and the server,"
+    punchline: "a packet has sat down and refused to go on."
+
+  - setup: "Why did the dashboard go blank?"
+    punchline: "It was asked one too many times what the bins were doing."
+
+  - setup: "The forecast is unavailable."
+    punchline: "In Oxfordshire this is not usually a reason to leave the coat."
