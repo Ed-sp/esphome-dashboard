@@ -17,7 +17,8 @@ import hashlib
 import logging
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from email.utils import format_datetime, parsedate_to_datetime
 from zoneinfo import ZoneInfo
 
 from flask import Flask, Response, jsonify, request
@@ -34,7 +35,7 @@ CACHE_SECONDS = int(os.environ.get("PANEL_CACHE_SECONDS", "45"))
 
 
 class Renderer:
-    """Caches the most recent successful render and its ETag."""
+    """Caches the most recent successful render, its ETag, and when it changed."""
 
     def __init__(self, config: Config):
         self.config = config
@@ -42,6 +43,10 @@ class Renderer:
         self._etag: str | None = None
         self._rendered_at: float = 0.0
         self._error: str | None = None
+        # Wall-clock time the *content* last changed, which is not the same as
+        # when it was last rendered: re-rendering identical pixels must not move
+        # this, or If-Modified-Since would never match.
+        self._changed_at: datetime = datetime.now(timezone.utc)
 
     @property
     def stale(self) -> bool:
@@ -66,8 +71,15 @@ class Renderer:
         png = layout.render(panel).to_png_bytes()
         etag = hashlib.sha256(png).hexdigest()[:16]
 
+        if etag != self._etag:
+            self._changed_at = datetime.now(timezone.utc)
+
         self._png, self._etag, self._rendered_at = png, etag, time.monotonic()
         return png, etag
+
+    @property
+    def changed_at(self) -> datetime:
+        return self._changed_at
 
     @property
     def error(self) -> str | None:
@@ -76,6 +88,23 @@ class Renderer:
     @property
     def age_seconds(self) -> float:
         return time.monotonic() - self._rendered_at if self._png else -1.0
+
+
+def http_date(when: datetime) -> str:
+    """RFC 7231 date, which is always English and always GMT regardless of locale."""
+    return format_datetime(when, usegmt=True)
+
+
+def _not_modified_since(header: str, changed_at: datetime) -> bool:
+    try:
+        since = parsedate_to_datetime(header)
+    except (TypeError, ValueError):
+        return False
+    if since.tzinfo is None:
+        since = since.replace(tzinfo=timezone.utc)
+    # HTTP dates have one-second resolution, so a change in the same second as
+    # the client's timestamp would be missed by a strict comparison.
+    return changed_at.replace(microsecond=0) <= since
 
 
 def next_wake_seconds(config: Config) -> int:
@@ -124,14 +153,39 @@ def create_app(config: Config | None = None) -> Flask:
     @app.get("/panel.png")
     def panel_png() -> Response:
         png, etag = renderer.render(force=request.args.get("force") is not None)
+        last_modified = http_date(renderer.changed_at)
+
+        # Both conditional forms are honoured, because the two ways of driving
+        # this device need different ones.
+        #
+        # ESPHome's online_image sends If-None-Match by itself and skips the
+        # download on a 304 -- but it keeps the ETag in RAM, and deep sleep
+        # wipes RAM, so a battery panel starts every wake with no ETag. The
+        # device can persist its own timestamp across sleep, though, which is
+        # why If-Modified-Since is supported as well: it needs no value read
+        # back out of the component.
+        #
+        # The saving is smaller than it looks. Skipping a 7 KB download is
+        # perhaps 2% of a wake; the WiFi association dominates and happens
+        # regardless. What this really buys is not refreshing the display when
+        # nothing changed, which avoids ghosting and stops the panel flashing
+        # black and white in a hallway for no reason.
         if request.headers.get("If-None-Match") == etag:
-            # Nothing changed: the device skips the display refresh entirely,
-            # which is worth roughly a third of the wake and saves ghosting.
-            return Response(status=304, headers={"ETag": etag})
+            return Response(status=304, headers={"ETag": etag, "Last-Modified": last_modified})
+
+        since = request.headers.get("If-Modified-Since")
+        if since and _not_modified_since(since, renderer.changed_at):
+            return Response(status=304, headers={"ETag": etag, "Last-Modified": last_modified})
+
         return Response(
             png,
             mimetype="image/png",
-            headers={"ETag": etag, "Cache-Control": "no-cache", "Content-Length": str(len(png))},
+            headers={
+                "ETag": etag,
+                "Last-Modified": last_modified,
+                "Cache-Control": "no-cache",
+                "Content-Length": str(len(png)),
+            },
         )
 
     @app.get("/status")

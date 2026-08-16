@@ -71,10 +71,43 @@ the preview still works.
 
 | Route | For |
 | --- | --- |
-| `/panel.png` | The device. Carries an `ETag`; an unchanged render answers 304, so the ESP skips the display refresh entirely. |
+| `/panel.png` | The device. Honours both `If-None-Match` and `If-Modified-Since`. |
+| `/status` | ETag, byte count and seconds-to-next-wake in ~70 bytes. |
 | `/preview` | A browser, for iterating on the layout. |
-| `/next-wake` | Seconds until the device should wake, from presence and the sleep schedule. |
+| `/next-wake` | Just the sleep interval, if you only want that. |
 | `/health` | Whether the last render used live data, and why not if it didn't. |
+
+### Why two conditional forms, and what they are actually worth
+
+ESPHome's `online_image` already sends `If-None-Match` on its own and skips the
+download on a 304 — so on a mains-powered device this needs nothing from us. But
+it holds the ETag in a plain member (`online_image.h:98`) and deep sleep wipes
+RAM, so a battery panel starts every wake with no ETag and downloads the whole
+image regardless. There is no setter, and `set_url()` explicitly clears it.
+
+`If-Modified-Since` is the way round that: the device can persist *its own*
+timestamp across deep sleep, with nothing to read back out of the component.
+`Last-Modified` tracks when the content last **changed**, not when it was last
+rendered — re-rendering identical pixels deliberately leaves it alone, or the
+header would never match twice.
+
+Worth being honest about the size of the prize. Per wake, roughly:
+
+| | duration | current | share |
+| --- | --- | --- | --- |
+| WiFi association | 2–5 s | ~120 mA | **~85%** |
+| Display refresh | ~2 s | ~25 mA | ~10% |
+| Downloading 7 KB | ~0.1 s | ~120 mA | ~2% |
+
+Skipping the download saves almost nothing; the association dominates and
+happens either way. What conditional requests really buy is **not refreshing the
+display when nothing changed** — no ghosting, and no 7.5" panel flashing black
+and white in a hallway for no reason. The battery lever is wake frequency, not
+bytes.
+
+`/status` exists because the device needs the sleep interval anyway: one request
+answers both questions, so an unchanged wake is a single ~70-byte round trip
+instead of two.
 
 ## Configuration
 
