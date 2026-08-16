@@ -48,7 +48,21 @@ commute:
     label: Oxford
     zone: zone.work_hannah
 
-  # Travel-time sensors, created by the Google Maps Travel Time integration.
+  # Travel-time sensors from the Google Maps Travel Time integration.
+  #
+  # combined_car is NOT one of them: the integration does origin-to-destination
+  # only, with no waypoints, so a home -> Ed's work -> Hannah's work journey
+  # cannot be asked for directly. It is a min_max helper in `sum` mode over two
+  # legs, the first of which is ed_car and already polled:
+  #
+  #     leg 1   sensor.ed_to_work_car          home -> Yarnton
+  #     leg 2   sensor.yarnton_to_hannah_work  Yarnton -> Hannah's work
+  #     sum     sensor.combined_commute_car
+  #
+  # Worth knowing what that approximates away: leg 2 is priced with the traffic
+  # happening *now* rather than in twenty minutes' time, and the handover at
+  # Ed's work counts as zero. On a building rush hour the real journey runs a
+  # little longer than the sum.
   sensors:
     ed_bike: sensor.ed_to_work_bike
     ed_car: sensor.ed_to_work_car
