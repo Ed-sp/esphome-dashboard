@@ -130,18 +130,41 @@ collect:
   source: data/collects.yaml
 
 sky:
-  # How far ahead to look for eclipses, meteor showers and the full moon.
+  # How far ahead any provider is allowed to look.
   lookahead_days: 7
 
-  aurora:
-    enabled: true
-    # AuroraWatch UK's four levels are green, yellow, amber and red, calibrated
-    # to UK latitudes. From Oxfordshire, amber means "worth looking north" and
-    # red means "go outside". Set to red if amber turns out to be noise.
-    threshold: amber
-    # Lancaster ask for no more than one request every 3 minutes. This is the
-    # interval between fetches; 15 is still far fresher than the panel refreshes.
-    poll_minutes: 15
+  # One block per provider. `enabled: false` switches one off without touching
+  # code; anything not listed here is on by default. They compete for a single
+  # line, and the highest-ranked event wins.
+  #
+  # To add one: write a function in panel/sources/sky/, decorate it with
+  # @provider("name"), import it in that package's __init__, and give it a block
+  # here. Nothing else needs to change.
+  events:
+    eclipses:
+      enabled: true
+
+    showers:
+      enabled: true
+      # Ignore anything fainter than this, in meteors per hour at best. Raise to
+      # 50 for just the Perseids, Geminids and Quadrantids.
+      min_zhr: 0
+
+    moon:
+      # The full moon, once a month. The first thing to turn off if the line
+      # starts feeling like wallpaper.
+      enabled: true
+
+    aurora:
+      enabled: true
+      # AuroraWatch UK's four levels are green, yellow, amber and red,
+      # calibrated to UK latitudes. From Oxfordshire, amber means "worth
+      # looking north" and red means "go outside". Set to red if amber
+      # turns out to be noise.
+      threshold: amber
+      # Lancaster ask for no more than one request every 3 minutes. This is the
+      # gap between fetches; 15 is still far fresher than the panel refreshes.
+      poll_minutes: 15
 
 refresh:
   awake_minutes: 20

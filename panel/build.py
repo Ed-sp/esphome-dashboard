@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 from .config import Config
 from .hass import Hass
 from .model import Panel
-from .sources import agenda, alerts, aurora, collect, commute, sky, stats, weather
+from .sources import agenda, alerts, collect, commute, sky, stats, weather
 
 log = logging.getLogger(__name__)
 
@@ -27,17 +27,14 @@ def _date_label(tz: ZoneInfo) -> str:
 
 
 def _sky_line(config: Config, tz: ZoneInfo) -> str | None:
-    """Computed sky events, with any live alert folded in alongside them."""
-    today = datetime.now(tz).date()
+    """Whichever enabled sky provider has the most interesting thing to say."""
     settings = config.raw.get("sky", {}) or {}
-
-    extra: list[sky.SkyEvent] = []
-    alert = aurora.line(settings.get("aurora"))
-    if alert:
-        text, rank = alert
-        extra.append(sky.SkyEvent(when=today, text=text, rank=rank))
-
-    return sky.line(today, days=settings.get("lookahead_days", 7), tz=tz, extra=extra)
+    return sky.line(
+        datetime.now(tz).date(),
+        days=settings.get("lookahead_days", 7),
+        tz=tz,
+        config=settings.get("events") or {},
+    )
 
 
 def build(config: Config, hass: Hass) -> Panel:

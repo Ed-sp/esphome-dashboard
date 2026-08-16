@@ -30,6 +30,8 @@ from typing import Any
 
 import requests
 
+from . import RANKS, Context, SkyEvent, provider
+
 log = logging.getLogger(__name__)
 
 ENDPOINT = "https://aurorawatch-api.lancs.ac.uk/0.2/status/current-status.xml"
@@ -40,11 +42,11 @@ MIN_POLL_SECONDS = 180  # AuroraWatch UK's stated floor; never poll faster
 LEVELS = ["green", "yellow", "amber", "red"]
 
 # Wording per level, and how loudly it should shout. Red outranks every fixed
-# event in sky.yaml: a total lunar eclipse is worth knowing about a week ahead,
-# but an aurora visible from Oxfordshire is worth putting your shoes on for.
-_WORDING: dict[str, tuple[str, int]] = {
-    "amber": ("Aurora possible — amber alert, look north", 9),
-    "red": ("Aurora likely tonight — red alert, visible across the UK", 12),
+# event in the almanac: a total lunar eclipse is worth knowing about a week
+# ahead, but an aurora visible from Oxfordshire is worth putting your shoes on.
+_WORDING: dict[str, tuple[str, str]] = {
+    "amber": ("Aurora possible — amber alert, look north", "alert"),
+    "red": ("Aurora likely tonight — red alert, visible across the UK", "spectacle"),
 }
 
 
@@ -77,23 +79,20 @@ def _parse(xml: str) -> Reading | None:
     return Reading(level=level, updated=stamp.group(1).strip() if stamp else None)
 
 
-def current(config: dict[str, Any] | None = None) -> Reading | None:
+def current(settings: dict[str, Any] | None = None) -> Reading | None:
     """The current alert level, cached. Returns None if it cannot be fetched."""
     global _cache
 
-    config = config or {}
-    if not config.get("enabled", True):
-        return None
-
-    poll = max(MIN_POLL_SECONDS, int(config.get("poll_minutes", 15)) * 60)
+    settings = settings or {}
+    poll = max(MIN_POLL_SECONDS, int(settings.get("poll_minutes", 15)) * 60)
     fetched_at, cached = _cache
     if cached is not None and (time.monotonic() - fetched_at) < poll:
         return cached
 
     try:
         response = requests.get(
-            config.get("endpoint", ENDPOINT),
-            headers={"User-Agent": config.get("user_agent", USER_AGENT)},
+            settings.get("endpoint", ENDPOINT),
+            headers={"User-Agent": settings.get("user_agent", USER_AGENT)},
             # Short: this sits on the render path, and the document is tiny. A
             # slow Lancaster should cost the panel a stale reading, not a
             # timed-out fetch on the device.
@@ -115,19 +114,19 @@ def current(config: dict[str, Any] | None = None) -> Reading | None:
     return reading
 
 
-def line(config: dict[str, Any] | None = None) -> tuple[str, int] | None:
-    """(text, rank) when the alert is at or above the configured threshold."""
-    config = config or {}
-    reading = current(config)
+@provider("aurora")
+def upcoming(context: Context) -> list[SkyEvent]:
+    reading = current(context.settings)
     if reading is None:
-        return None
+        return []
 
-    threshold = str(config.get("threshold", "amber")).lower()
+    threshold = str(context.settings.get("threshold", "amber")).lower()
     if threshold not in LEVELS:
         log.warning("aurora threshold %r is not one of %s", threshold, LEVELS)
         threshold = "amber"
 
     if LEVELS.index(reading.level) < LEVELS.index(threshold):
-        return None
+        return []
 
-    return _WORDING.get(reading.level) or (f"Aurora {reading.level} alert", 9)
+    text, rank_key = _WORDING.get(reading.level, (f"Aurora {reading.level} alert", "alert"))
+    return [SkyEvent(context.today, text, RANKS[rank_key])]

@@ -147,6 +147,32 @@ One line under the calendar, when there is something worth going outside for.
 On 218 days of 2026 there is nothing and the line does not appear at all, which
 is the intended behaviour.
 
+Events come from independent **providers** that compete for that one line, the
+highest-ranked winning. Each gets a block in `config.yaml` and can be switched
+off without touching code:
+
+```yaml
+sky:
+  events:
+    showers: { enabled: true, min_zhr: 50 }   # just the big three
+    moon:    { enabled: false }               # stop it filling 75 days a year
+```
+
+Adding one means writing a function in `panel/sources/sky/`, decorating it with
+`@provider("name")`, and importing it in that package's `__init__`. Nothing else
+needs to know it exists.
+
+Two properties are worth preserving if you edit that package. **A provider that
+raises loses only itself** — a panel that rendered nothing because a satellite
+API changed its JSON would be a bad trade. And **rank is comparable across
+providers**, since they are competing for one line; the shared scale lives in
+`sky.RANKS`.
+
+```bash
+python tools/sky_year.py 2026            # what the line says across a year
+python tools/sky_year.py --off moon      # as if that provider were disabled
+```
+
 Meteor showers and eclipses come from [`data/sky.yaml`](data/sky.yaml). Shower
 peaks land within a day of the same date each year and eclipse dates are known
 centuries ahead, so fetching them would add a network dependency and a failure

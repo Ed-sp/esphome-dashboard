@@ -20,27 +20,38 @@ from PIL import ImageFont
 _CANDIDATES: dict[str, list[str]] = {
     "sans": [
         "C:/Windows/Fonts/arial.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",  # Alpine, and so the add-on
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Debian
         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "/usr/share/fonts/TTF/DejaVuSans.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",  # Arch
     ],
     "sans_bold": [
         "C:/Windows/Fonts/arialbd.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
         "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
     ],
     "serif": [
         "C:/Windows/Fonts/georgia.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSerif.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+        "/usr/share/fonts/TTF/DejaVuSerif.ttf",
     ],
     "serif_italic": [
         "C:/Windows/Fonts/georgiai.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSerif-Italic.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf",
     ],
 }
+
+# The panel is drawn on Windows during development and on Alpine in the add-on,
+# so the same layout is set in Arial/Georgia in one place and DejaVu in the
+# other. DejaVu is a little wider, which the collect's auto-fit ladder absorbs
+# by dropping a size -- but it is worth knowing that the two do not render
+# identically, and the add-on is the one that counts.
 
 
 class FontsMissing(RuntimeError):
