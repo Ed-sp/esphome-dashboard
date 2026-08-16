@@ -134,6 +134,28 @@ def create_app(config: Config | None = None) -> Flask:
             headers={"ETag": etag, "Cache-Control": "no-cache", "Content-Length": str(len(png))},
         )
 
+    @app.get("/status")
+    def status() -> Response:
+        """What the device asks before deciding whether to download anything.
+
+        One request answers both questions it has -- has the picture changed,
+        and how long should I sleep -- because a sleeping ESP32 cannot be pushed
+        to and every extra round trip is radio time on a battery.
+
+        The response is a couple of hundred bytes against a ~7 KB PNG, so on a
+        wake where nothing changed the device skips the download *and* the
+        display refresh.
+        """
+        png, etag = renderer.render()
+        return jsonify(
+            {
+                "etag": etag,
+                "bytes": len(png),
+                "next_wake": next_wake_seconds(config),
+                "live": renderer.error is None,
+            }
+        )
+
     @app.get("/next-wake")
     def next_wake() -> Response:
         return jsonify({"seconds": next_wake_seconds(config)})

@@ -30,6 +30,43 @@ def _sun_times(states: dict[str, State], tz: ZoneInfo) -> tuple[int, int]:
     return (rising.hour if rising else 6, setting.hour if setting else 21)
 
 
+# Forecast providers disagree about how to describe rain. Open-Meteo and the Met
+# Office give `precipitation_probability` as a percentage; met.no -- which is
+# what weather.home uses -- gives `precipitation` in millimetres and no
+# probability at all. Reading only the former means the shading never appears.
+#
+# Millimetres are mapped onto the same 0-100 scale the dither thresholds use, so
+# the graph looks the same either way. The printed label does not pretend: a
+# millimetre forecast is labelled in millimetres.
+_MM_TO_INTENSITY = ((0.05, 0), (0.3, 20), (1.0, 40), (3.0, 60))
+
+
+def _rain_intensity(entry: dict) -> float | None:
+    probability = entry.get("precipitation_probability")
+    if probability is not None:
+        return float(probability)
+
+    millimetres = entry.get("precipitation")
+    if millimetres is None:
+        return None
+    for limit, intensity in _MM_TO_INTENSITY:
+        if float(millimetres) < limit:
+            return intensity
+    return 85.0
+
+
+def _rain_label(entry: dict) -> str | None:
+    """What to print beside the day's icon, or None to leave it clean."""
+    probability = entry.get("precipitation_probability")
+    if probability is not None:
+        return f"{round(probability)}%" if probability >= 30 else None
+
+    millimetres = entry.get("precipitation")
+    if millimetres is None or float(millimetres) < 0.2:
+        return None
+    return f"{float(millimetres):g}mm"
+
+
 def now_block(states: dict[str, State], entity: str, tz: ZoneInfo) -> Now:
     weather = states.get(entity)
     if weather is None:
@@ -68,7 +105,7 @@ def hourly(
             Hour(
                 hour=when.hour,
                 temperature=float(entry["temperature"]),
-                rain=entry.get("precipitation_probability"),
+                rain=_rain_intensity(entry),
                 night=not (sunrise_hour <= when.hour < sunset_hour),
             )
         )
@@ -90,7 +127,8 @@ def daily(hass: Hass, entity: str, tz: ZoneInfo, count: int = 7) -> list[Day]:
                 condition=entry.get("condition", "cloudy"),
                 high=float(entry["temperature"]),
                 low=float(entry.get("templow") or entry["temperature"]),
-                rain=entry.get("precipitation_probability"),
+                rain=_rain_intensity(entry),
+                rain_label=_rain_label(entry),
             )
         )
     return days
@@ -104,10 +142,15 @@ def summary(hours: list[Hour]) -> str:
     temps = [h.temperature for h in hours]
     span = f"{round(min(temps))}–{round(max(temps))}°"
 
-    wettest = max(hours, key=lambda h: h.rain or 0)
-    if (wettest.rain or 0) < 20:
+    # 40 rather than 20: a trace of drizzle at the far end of the window should
+    # not put "RAIN FROM 08:00" on a panel read on a dry morning.
+    wet = [hour for hour in hours if (hour.rain or 0) >= 40]
+    if not wet:
         return f"{span}  ·  DRY"
-    return f"{span}  ·  RAIN {round(wettest.rain)}% AT {wettest.hour:02d}:00"
+
+    # When it starts matters more than how hard it comes down: the panel is read
+    # on the way out of the door.
+    return f"{span}  ·  RAIN FROM {wet[0].hour:02d}:00"
 
 
 def rain_within(hours: list[Hour], minutes: int, threshold: int = 40) -> bool:

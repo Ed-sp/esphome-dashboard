@@ -212,8 +212,8 @@ def _week(c: Canvas, week: list[Day]) -> None:
         y = WEEK_TOP + i * WEEK_STEP
         c.text(RIGHT[0], y, day.label.upper(), LABEL)
         icons.paste(c.image, icons.for_condition(day.condition), 562, y - 12, 14)
-        if day.rain is not None and day.rain >= 30:
-            c.text(586, y, f"{round(day.rain)}%", TINY)
+        if day.rain_label:
+            c.text(586, y, day.rain_label, TINY)
         c.text(756, y, f"{round(day.high)}°", Text("sans_bold", 14), anchor="right")
         c.text(RIGHT[1], y, f"{round(day.low)}°", SMALL, anchor="right")
 
@@ -228,6 +228,10 @@ BADGE_R = 8
 
 
 def _next_up(c: Canvas, events: list[Event], sky: str | None) -> None:
+    # A heading with nothing under it looks like a fault rather than a quiet
+    # day, so the whole block goes if there is neither an event nor a sky line.
+    if not events and not sky:
+        return
     _eyebrow(c, RIGHT[0], 214, "Next up")
 
     for i, event in enumerate(events[:4]):

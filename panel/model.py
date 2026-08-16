@@ -28,14 +28,19 @@ class Day:
     condition: str
     high: float
     low: float
+    # 0-100 shading intensity, and what to print next to the icon. They are
+    # separate because not every forecast provider reports a probability:
+    # met.no gives millimetres only, and printing those as a percentage would
+    # be a lie. The source decides the wording; the layout just draws it.
     rain: float | None = None
+    rain_label: str | None = None
 
 
 @dataclass
 class Hour:
     hour: int
     temperature: float
-    rain: float | None = None
+    rain: float | None = None  # 0-100 shading intensity, see Day.rain
     night: bool = False
 
 
