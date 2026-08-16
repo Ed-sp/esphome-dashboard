@@ -76,14 +76,28 @@ commute:
     slow_minutes: 8
 
 waste:
-  sensor: sensor.next_collection
-  # Attribute name -> how it should be drawn.
-  bins:
-    GREEN BIN: { label: Green bin, icon: recycle }
-    GREY BIN: { label: Grey bin, icon: bin }
+  # The calendar, not the sensor. The sensor keys its attributes by date with
+  # the waste type as the value, so the keys change every collection and any
+  # config matching on them would need rewriting fortnightly.
+  calendar: calendar.vale_of_white_horse_district_council
+
   # Show from this time the evening before until noon on collection day.
   show_from: "17:00"
   hide_at: "12:00"
+
+  # `match` is a case-insensitive substring of what the council calls the
+  # collection; first match wins. The labels are what appears on the wall --
+  # "Non-recyclable refuse waste" is not a thing to read from across a hallway.
+  # `exclude` earns its place here: the Vale calls a rubbish week
+  # "Non-recyclable refuse waste", which contains "recycl". Without it the panel
+  # confidently tells you to put the recycling out on a rubbish week.
+  types:
+    - { match: recycl, exclude: non-recycl, label: Recycling, icon: recycle }
+    - { match: refuse, label: Rubbish, icon: bin }
+    - { match: garden, label: Garden waste, icon: leaf }
+    # Weekly, so it is never news. Left here so the log does not complain about
+    # an unmatched type every time one comes round.
+    - { match: food, label: Food waste, icon: leaf, show: false }
 
 alerts:
   # Device batteries below this raise a line in "Needs you".

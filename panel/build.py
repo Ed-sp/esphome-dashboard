@@ -65,7 +65,7 @@ def build(config: Config, hass: Hass) -> Panel:
         hours=hours,
         rain_summary=weather.summary(hours),
         commutes=guarded("commute", lambda: commute.build(config, states, hours, tz), []),
-        alerts=guarded("alerts", lambda: alerts.build(config, states, tz), []),
+        alerts=guarded("alerts", lambda: alerts.build(config, hass, states, tz), []),
         events=guarded(
             "calendar",
             lambda: agenda.upcoming(

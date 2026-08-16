@@ -18,30 +18,20 @@ from ..model import Alert
 
 log = logging.getLogger(__name__)
 
-_DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%d/%m/%y", "%m/%d/%Y", "%d %B %Y", "%A %d %B")
+def waste(config: Config, hass, tz: ZoneInfo) -> Alert | None:
+    """The bin alert, from the evening before until noon on collection day.
 
+    Read from the waste calendar rather than the sensor. The sensor's attributes
+    are keyed by *date* with the waste type as the value -- so the keys change
+    every collection, and matching on them would mean rewriting config
+    fortnightly. The calendar gives a stable (date, summary) pair.
 
-def _parse_date(value: str, today: date) -> date | None:
-    text = (value or "").strip()
-    if not text:
-        return None
-    for fmt in _DATE_FORMATS:
-        try:
-            parsed = datetime.strptime(text, fmt).date()
-        except ValueError:
-            continue
-        # Formats without a year land in 1900; pull them onto the current one.
-        if parsed.year == 1900:
-            parsed = parsed.replace(year=today.year)
-        return parsed
-    log.warning("could not parse a collection date from %r", text)
-    return None
-
-
-def waste(config: Config, states: dict[str, State], tz: ZoneInfo) -> Alert | None:
-    """The bin alert, from the evening before until noon on collection day."""
-    sensor = states.get(config.waste["sensor"])
-    if sensor is None:
+    What the council calls each collection is matched to what the panel says via
+    `waste.types` in panel.yaml, because "Non-recyclable refuse waste" is not
+    what anyone would want across a hallway.
+    """
+    entity = config.waste.get("calendar")
+    if not entity:
         return None
 
     now = datetime.now(tz)
@@ -49,9 +39,19 @@ def waste(config: Config, states: dict[str, State], tz: ZoneInfo) -> Alert | Non
     show_from = datetime.strptime(config.waste["show_from"], "%H:%M").time()
     hide_at = datetime.strptime(config.waste["hide_at"], "%H:%M").time()
 
-    for attribute, meta in config.waste["bins"].items():
-        when = _parse_date(str(sensor.attr(attribute, "")), today)
-        if when is None:
+    events = hass.calendar_events(entity, now - timedelta(days=1), now + timedelta(days=3))
+    if not events:
+        log.info("%s has no collections in the next few days", entity)
+        return None
+
+    for raw in events:
+        start = (raw.get("start") or {}).get("date")
+        summary = (raw.get("summary") or "").strip()
+        if not start or not summary:
+            continue
+        try:
+            when = date.fromisoformat(start)
+        except ValueError:
             continue
 
         due_tonight = when == today + timedelta(days=1) and now.time() >= show_from
@@ -59,23 +59,48 @@ def waste(config: Config, states: dict[str, State], tz: ZoneInfo) -> Alert | Non
         if not (due_tonight or due_today):
             continue
 
-        label = meta["label"]
+        meta = _waste_type(config, summary)
+        if meta is None or not meta.get("show", True):
+            continue
+
         return Alert(
-            text=f"{label} out {'tonight' if due_tonight else 'this morning'}",
+            text=f"{meta['label']} out {'tonight' if due_tonight else 'this morning'}",
             icon=meta.get("icon", "bin"),
             urgent=True,
         )
 
-    if all(not str(sensor.attr(name, "")).strip() for name in config.waste["bins"]):
-        # The integration is running but reporting nothing. Worth saying out loud
-        # rather than silently never showing a bin alert again.
-        log.warning(
-            "%s has no collection dates in any of %s -- the scraper is running but "
-            "returning empty values, so bin alerts will never fire",
-            config.waste["sensor"],
-            ", ".join(config.waste["bins"]),
-        )
     return None
+
+
+def _waste_type(config: Config, summary: str) -> dict | None:
+    """Match the council's wording to a panel label.
+
+    `exclude` is not decoration. The Vale calls a rubbish week "Non-recyclable
+    refuse waste", which contains "recycl" -- so a plain substring match on the
+    recycling rule tells you to put the wrong bin out. Getting that wrong is
+    worse than showing nothing, since the panel would be actively lying on the
+    one alert it fills the screen black for.
+    """
+    lowered = summary.lower()
+    for entry in config.waste.get("types", []) or []:
+        needle = str(entry.get("match", "")).lower()
+        if not needle or needle not in lowered:
+            continue
+        excluded = [str(x).lower() for x in _as_list(entry.get("exclude"))]
+        if any(x in lowered for x in excluded):
+            continue
+        return entry
+
+    log.warning(
+        "no waste.types entry matches %r, so no bin alert will show for it", summary
+    )
+    return None
+
+
+def _as_list(value) -> list:
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
 
 
 def batteries(config: Config, states: dict[str, State]) -> list[Alert]:
@@ -140,10 +165,10 @@ def plants(config: Config, states: dict[str, State], tz: ZoneInfo) -> list[Alert
     return out
 
 
-def build(config: Config, states: dict[str, State], tz: ZoneInfo) -> list[Alert]:
+def build(config: Config, hass, states: dict[str, State], tz: ZoneInfo) -> list[Alert]:
     out: list[Alert] = []
 
-    bin_alert = waste(config, states, tz)
+    bin_alert = waste(config, hass, tz)
     if bin_alert:
         out.append(bin_alert)
 
