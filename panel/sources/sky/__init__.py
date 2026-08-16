@@ -2,7 +2,7 @@
 
 Events come from independent *providers*. A provider is a function that takes a
 `Context` and returns `SkyEvent`s; it is registered by name with `@provider` and
-gets its own block in `config.yaml`, so any of them can be switched off without
+gets its own block in `panel.yaml`, so any of them can be switched off without
 touching code:
 
     sky:

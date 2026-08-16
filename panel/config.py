@@ -1,4 +1,4 @@
-"""Load and validate config.yaml.
+"""Load and validate panel.yaml.
 
 Deliberately thin: this resolves paths and fails loudly on the handful of things
 that would otherwise produce a silently wrong panel (a workplace key that does
@@ -55,7 +55,13 @@ class Config:
         self.refresh = raw.get("refresh", {})
 
         ha = raw.get("home_assistant", {})
-        self.base_url = str(ha.get("base_url", "")).rstrip("/")
+        # Inside the add-on the Supervisor provides both of these, and they
+        # differ from anything sensible to write in a file, so the environment
+        # wins over the config. Running from a checkout, neither is set and the
+        # file's values apply.
+        self.base_url = (
+            os.environ.get("HA_BASE_URL") or str(ha.get("base_url", ""))
+        ).rstrip("/")
         self.timezone = ha.get("timezone", "Europe/London")
         self._token_env = ha.get("token_env", "HA_TOKEN")
 
@@ -76,11 +82,14 @@ class Config:
 
     @property
     def token(self) -> str:
-        token = os.environ.get(self._token_env, "")
+        # SUPERVISOR_TOKEN is what the add-on gets for free; the configured
+        # variable is for running against a remote instance from a checkout.
+        token = os.environ.get(self._token_env) or os.environ.get("SUPERVISOR_TOKEN", "")
         if not token:
             raise ConfigError(
                 f"No Home Assistant token. Set ${self._token_env} to a long-lived "
-                f"access token (Profile -> Security -> Long-lived access tokens)."
+                f"access token (Profile -> Security -> Long-lived access tokens). "
+                f"Inside the add-on this comes from the Supervisor automatically."
             )
         return token
 
@@ -88,7 +97,7 @@ class Config:
         for entry in self.people:
             if entry.key == key:
                 return entry
-        raise ConfigError(f"No person with key {key!r} in config.yaml")
+        raise ConfigError(f"No person with key {key!r} in panel.yaml")
 
     @property
     def ed_workplace(self) -> dict[str, Any]:
@@ -135,7 +144,14 @@ class Config:
 
 
 def load(path: str | Path | None = None) -> Config:
-    resolved = Path(path) if path else ROOT / "config.yaml"
+    """Load panel.yaml.
+
+    The add-on points $PANEL_CONFIG at /config/panel.yaml, which the Supervisor
+    surfaces as /addon_configs/<slug>/panel.yaml on the host -- editable with the
+    File editor add-on and, unlike a copy baked into the image, surviving an
+    add-on rebuild.
+    """
+    resolved = Path(path or os.environ.get("PANEL_CONFIG") or ROOT / "panel.yaml")
     if not resolved.is_file():
         raise ConfigError(f"No config at {resolved}")
     with resolved.open("r", encoding="utf-8") as handle:

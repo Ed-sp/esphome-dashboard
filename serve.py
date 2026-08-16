@@ -28,8 +28,21 @@ def main() -> int:
 
     host = os.environ.get("PANEL_HOST", "0.0.0.0")
     port = int(os.environ.get("PANEL_PORT", "8099"))
-    logging.getLogger(__name__).info("preview on http://127.0.0.1:%d/preview", port)
-    app.run(host=host, port=port, threaded=True)
+    log = logging.getLogger(__name__)
+    log.info("preview on http://127.0.0.1:%d/preview", port)
+
+    try:
+        from waitress import serve as waitress_serve
+    except ImportError:
+        # Fine for poking at the layout from a checkout; the add-on installs
+        # waitress, so the container never takes this path.
+        log.warning("waitress not installed, falling back to the Flask dev server")
+        app.run(host=host, port=port, threaded=True)
+        return 0
+
+    # A render can take a moment and the ESP32 has its own timeout; two threads
+    # is enough for one device plus a browser on /preview.
+    waitress_serve(app, host=host, port=port, threads=2, ident="hallway-panel")
     return 0
 
 

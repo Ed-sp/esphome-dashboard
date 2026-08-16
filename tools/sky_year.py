@@ -1,6 +1,6 @@
 """What the sky line would say across a year, and which provider said it.
 
-    python tools/sky_year.py                 # this year, config.yaml settings
+    python tools/sky_year.py                 # this year, panel.yaml settings
     python tools/sky_year.py 2027
     python tools/sky_year.py --off moon      # as if the moon provider were off
 

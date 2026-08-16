@@ -70,7 +70,7 @@ def _rain_label(entry: dict) -> str | None:
 def now_block(states: dict[str, State], entity: str, tz: ZoneInfo) -> Now:
     weather = states.get(entity)
     if weather is None:
-        raise RuntimeError(f"{entity} not found; check weather.entity in config.yaml")
+        raise RuntimeError(f"{entity} not found; check weather.entity in panel.yaml")
 
     sun = states.get("sun.sun")
     setting = _parse(sun.attr("next_setting") if sun else None, tz)

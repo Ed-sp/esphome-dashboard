@@ -1,4 +1,8 @@
 pillow>=10.0
 pyyaml>=6.0
 flask>=3.0
+# Flask's built-in server warns that it is not for production, and it is right:
+# this runs 24/7 in a container. Waitress is pure Python and needs no extra
+# system packages on Alpine.
+waitress>=3.0
 requests>=2.31

@@ -57,17 +57,29 @@ def _header(c: Canvas, p: Panel) -> None:
 
     icon = icons.for_condition(p.now.condition, night=p.now.night)
     icons.paste(c.image, icon, 560, 6, 28)
-    c.text(596, 30, f"{round(p.now.temperature)}°", Text("sans_bold", 26))
+    temperature = c.text(596, 30, f"{round(p.now.temperature)}°", Text("sans_bold", 26))
 
-    c.text(RIGHT[1], 19, p.now.summary, SMALL, anchor="right")
+    # The two lines to the right of the temperature are right-aligned to the
+    # margin, so how much room they have depends on how wide the temperature
+    # rendered. That varies with the typeface -- DejaVu in the add-on is wider
+    # than Arial in development -- and "-9°" is wider than "7°". Measure it.
+    available = RIGHT[1] - temperature - 10
 
+    c.text(RIGHT[1], 19, c.ellipsize(p.now.summary, SMALL, available), SMALL, anchor="right")
+
+    detail = Text("sans", 9, tracking=0.4)
     bits = []
     if p.now.feels_like is not None:
         bits.append(f"FEELS {round(p.now.feels_like)}°")
     if p.now.sunset:
         bits.append(f"SUNSET {p.now.sunset}")
+
+    # Drop whole clauses rather than ellipsizing: "FEELS 15° · SUNS…" is worse
+    # than just the sunset time.
+    while bits and c.measure("  ·  ".join(bits), detail) > available:
+        bits.pop(0)
     if bits:
-        c.text(RIGHT[1], 33, "  ·  ".join(bits), Text("sans", 9, tracking=0.4), anchor="right")
+        c.text(RIGHT[1], 33, "  ·  ".join(bits), detail, anchor="right")
 
     c.rule(M, HEADER_RULE_Y, RIGHT[1], HEADER_RULE_Y, weight=2)
     c.rule(SPLIT_X, COLUMN_TOP, SPLIT_X, COLUMN_BOTTOM, tone="light")

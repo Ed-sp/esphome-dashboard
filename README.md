@@ -111,13 +111,45 @@ instead of two.
 
 ## Configuration
 
-Everything switchable lives in [`config.yaml`](config.yaml) — Ed's workplace,
-commute rules and thresholds, which bin is which, the four stat slots, and the
-refresh schedule. Hannah's workplace is fixed today but uses the same shape as
-Ed's so it can gain options without a code change.
+Everything switchable lives in [`panel.yaml`](panel.yaml) — Ed's workplace,
+commute rules and thresholds, which bin is which, the four stat slots, which sky
+providers are on, and the refresh schedule. Hannah's workplace is fixed today but
+uses the same shape as Ed's so it can gain options without a code change.
 
-The Home Assistant token is read from the environment (`HA_TOKEN` by default) and
-is never written to the config.
+The Home Assistant token is read from the environment and never written to the
+config. Inside the add-on it comes from the Supervisor and no token has to be
+created at all.
+
+`config.yaml` at the root is the *add-on manifest*, not the panel's settings —
+that name is fixed by the Supervisor, which is why the panel's own configuration
+is `panel.yaml`.
+
+## Installing as a Home Assistant add-on
+
+This repository is the add-on. Copy it to `/addons/hallway-panel` on the Home
+Assistant machine, then **Settings → Add-ons → Add-on store → ⋮ → Check for
+updates**; it appears under *Local add-ons*. [`DOCS.md`](DOCS.md) is what shows
+on the add-on's Documentation tab.
+
+A few things about how it is put together:
+
+* **No access token.** `homeassistant_api: true` gets the container a
+  Supervisor-issued token and a route to `http://supervisor/core`, so there is
+  nothing to create or store.
+* **`panel.yaml` is copied out on first start** to
+  `/addon_configs/hallway_panel/panel.yaml`, where the File editor add-on can
+  reach it and where it survives rebuilding the add-on. The copy inside the
+  image is only ever a seed.
+* **The base image is named explicitly.** Supervisor stopped supplying
+  `BUILD_FROM` in 2026.04.0, so `ARG BUILD_FROM=…` in the Dockerfile is a
+  default rather than something injected. Moving to a Pi means changing that
+  line to `aarch64-base-python` and `arch` in the manifest to match.
+* **Fonts are installed, not assumed.** 1-bit rendering goes through FreeType's
+  monochrome rasteriser and needs real font files; `font-dejavu` provides both
+  roles. The build then renders the fixture scene and asserts every font role
+  resolved, so a missing package fails the build rather than the first render.
+* **The add-on options are deployment settings only** — log level and render
+  cache. Everything about what the panel *shows* is in `panel.yaml`.
 
 ## Layout of the code
 
@@ -129,7 +161,7 @@ is never written to the config.
 | `panel/render/icons.py` | Twenty icons as Pillow primitives, plus HA weather-state mapping. Not a font, so there is no TTF to ship and no glyph list to maintain. |
 | `panel/render/fonts.py` | Font resolution with Windows and Debian fallbacks. |
 | `panel/render/layout.py` | The 800×480 composition. Coordinates match the approved design. |
-| `panel/config.py` | Loads `config.yaml`, and fails loudly on the few mistakes that would otherwise render a silently wrong panel. |
+| `panel/config.py` | Loads `panel.yaml`, and fails loudly on the few mistakes that would otherwise render a silently wrong panel. |
 | `panel/hass.py` | The five REST calls the panel needs. Knows nothing about panels. |
 | `panel/sources/` | One module per region, each returning finished model objects. |
 | `panel/build.py` | Assembles a `Panel` from one state snapshot. Each section is guarded separately. |
@@ -181,7 +213,7 @@ On 218 days of 2026 there is nothing and the line does not appear at all, which
 is the intended behaviour.
 
 Events come from independent **providers** that compete for that one line, the
-highest-ranked winning. Each gets a block in `config.yaml` and can be switched
+highest-ranked winning. Each gets a block in `panel.yaml` and can be switched
 off without touching code:
 
 ```yaml
@@ -239,7 +271,7 @@ obligations come with it, both honoured in `aurora.py` — poll no faster than
 every three minutes (the default here is fifteen), and send a descriptive
 User-Agent. Their docs also ask that the published thresholds are not adjusted,
 so the code maps levels to wording without inventing intermediate states; what
-`config.yaml` controls is which level is worth interrupting the panel for.
+`panel.yaml` controls is which level is worth interrupting the panel for.
 
 A red alert outranks every fixed event, including a total lunar eclipse. An
 eclipse is predictable a decade out and you can plan around it; an aurora
