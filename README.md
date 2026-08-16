@@ -284,6 +284,66 @@ because the wifi hiccuped.
 Adding another live feed — ISS passes, say — means returning a `SkyEvent` and
 appending it in `build._sky_line`.
 
+## The firmware
+
+[`esphome/hallway-panel.yaml`](esphome/hallway-panel.yaml). One cycle:
+
+1. wake from deep sleep, connect wifi
+2. `GET /status` → `{"etag": "…", "next_wake": 1200}`
+3. compare the ETag with the one held in flash across sleep
+4. unchanged → sleep again, downloading nothing and not touching the display;
+   changed → `GET /panel.png`, push it, store the new ETag
+5. deep sleep for `next_wake` seconds
+
+`online_image` does send `If-None-Match` by itself, but it keeps the ETag in
+RAM and deep sleep wipes RAM, so every wake would start blank and download
+regardless. A global with `restore_value` survives sleep, and `/status` returns
+the sleep interval in the same ~70 bytes — one round trip rather than two.
+
+The script has a single exit point. Anything that fails leaves `next_wake` at
+its default and falls through to the same `deep_sleep.enter`, so no path stays
+awake with the radio on. The server-supplied interval is clamped to 60 s–6 h: a
+bad value would either flatten the battery overnight or leave the panel a day
+stale.
+
+To flash it, turn on the **Prevent deep sleep** switch in Home Assistant, wait
+for the next wake, push the update, then turn it off. Otherwise the device is
+awake for a couple of seconds at a time and impossible to catch.
+
+Copy [`secrets.yaml.example`](esphome/secrets.yaml.example) to
+`esphome/secrets.yaml` first. The static IP is worth setting — it removes a DHCP
+exchange from every wake, with the radio on.
+
+### Pins
+
+The substitutions at the top assume Waveshare's own ESP32 e-Paper Driver Board:
+
+| | |
+| --- | --- |
+| BUSY | GPIO25 |
+| RST | GPIO26 |
+| DC | GPIO27 |
+| CS | GPIO15 |
+| CLK | GPIO13 |
+| MOSI | GPIO14 |
+
+A LILYGO T5 or FireBeetle wires it differently — check the silkscreen before
+flashing. The battery sensor assumes a divider on GPIO34 that the Waveshare
+board does not have; delete that block if there isn't one.
+
+### How far this has been checked
+
+`esphome config` validates it against 2026.7.4, the same version as your Device
+Builder add-on, and every API the lambdas touch was read out of the ESPHome
+source rather than remembered: `on_response` exposes `response` and `body`;
+`json_parse_t` is `std::function<bool(JsonObject)>`; `sleep_duration` is
+templatable milliseconds; `HttpContainer::status_code` is public;
+`http_request` auto-loads the `json` component; `<algorithm>` arrives via
+`esphome/core/helpers.h`.
+
+**It has not been compiled or flashed.** Config validation does not check lambda
+bodies. Build it in the Device Builder add-on before trusting it.
+
 ## Still to build
 * **Add-on packaging.** Dockerfile and manifest.
 * **ESPHome firmware.** Wake, fetch, compare ETag, draw or skip, read

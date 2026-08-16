@@ -18,3 +18,4 @@ venv/
 .idea/
 Thumbs.db
 desktop.ini
+esphome/secrets.yaml

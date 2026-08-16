@@ -1,0 +1,261 @@
+# Hallway panel firmware.
+#
+# The whole job: wake, ask whether the picture changed, redraw only if it did,
+# and go back to sleep for however long Home Assistant says.
+#
+#   1. wake from deep sleep, connect wifi
+#   2. GET /status  -> {"etag": "...", "next_wake": 1200}
+#   3. compare the etag with the one kept in flash across sleep
+#   4. unchanged -> sleep again without downloading or refreshing the display
+#      changed   -> GET /panel.png, push it to the panel, store the new etag
+#   5. deep sleep for next_wake seconds
+#
+# Why /status rather than letting online_image do its own conditional request:
+# it does send If-None-Match on its own, but it keeps the ETag in RAM, and deep
+# sleep wipes RAM. Every wake would start with no ETag and download regardless.
+# A global with restore_value survives sleep, and /status returns the sleep
+# interval in the same ~70 bytes, so this is one round trip rather than two.
+#
+# Honestly: the energy saved is small. The wifi association dominates a wake and
+# happens either way. What this buys is not refreshing the display when nothing
+# changed -- no ghosting, and no 7.5" panel flashing black and white in a
+# hallway for no reason.
+
+substitutions:
+  device_name: hallway-panel
+  friendly_name: Hallway Panel
+
+  # The add-on, on the Home Assistant machine.
+  panel_host: "192.168.1.8:8099"
+
+  # Fallback only. The real interval comes from /status every wake; this covers
+  # the case where the panel service cannot be reached at all.
+  fallback_sleep: 30min
+
+  # Waveshare's own ESP32 e-Paper Driver Board. A LILYGO T5 or a FireBeetle
+  # wires the panel differently -- check the silkscreen before flashing.
+  pin_busy: GPIO25
+  pin_reset: GPIO26
+  pin_dc: GPIO27
+  pin_cs: GPIO15
+  pin_clk: GPIO13
+  pin_mosi: GPIO14
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  on_boot:
+    # -100 runs after wifi and the other components are set up.
+    priority: -100
+    then:
+      - script.execute: refresh_cycle
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+# Kept so the device can be reached for OTA, and so `prevent_deep_sleep` can be
+# switched on from Home Assistant when you need to flash it -- otherwise it is
+# awake for a couple of seconds a wake and impossible to catch.
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # A static address removes a DHCP round trip from every wake, which is real
+  # time with the radio on.
+  manual_ip:
+    static_ip: !secret panel_static_ip
+    gateway: !secret wifi_gateway
+    subnet: 255.255.255.0
+  ap:
+    ssid: "${friendly_name} Setup"
+    password: !secret fallback_password
+
+captive_portal:
+
+deep_sleep:
+  id: sleeper
+  # Nothing should keep it awake this long; this is a backstop against a hang
+  # leaving the radio on until the battery is flat.
+  run_duration: 90s
+  sleep_duration: ${fallback_sleep}
+
+http_request:
+  id: http
+  useragent: esphome/hallway-panel
+  timeout: 15s
+  verify_ssl: false
+
+globals:
+  # Survives deep sleep, which is the entire point -- online_image's own ETag
+  # does not.
+  - id: stored_etag
+    type: std::string
+    restore_value: true
+    max_restore_data_length: 24
+
+  - id: server_etag
+    type: std::string
+    restore_value: false
+
+  - id: next_wake
+    type: int
+    restore_value: false
+    initial_value: "1800"
+
+  - id: image_settled
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+image:
+  - platform: online_image
+    id: panel_image
+    url: http://${panel_host}/panel.png
+    format: PNG
+    type: BINARY
+    # The PNG is ~8 KB; this is the streaming buffer, not the framebuffer.
+    buffer_size: 16384
+    on_download_finished:
+      then:
+        - logger.log:
+            format: "Image ready (cached=%d), refreshing panel"
+            args: ["(int) cached"]
+        - component.update: eink
+        # A full refresh on this panel takes a couple of seconds; give it room
+        # before cutting the power.
+        - delay: 5s
+        - lambda: |-
+            id(stored_etag) = id(server_etag);
+            id(image_settled) = true;
+    on_error:
+      then:
+        - logger.log: "Image download failed; leaving the panel as it is"
+        - lambda: "id(image_settled) = true;"
+
+spi:
+  clk_pin: ${pin_clk}
+  mosi_pin: ${pin_mosi}
+
+display:
+  - platform: waveshare_epaper
+    id: eink
+    model: 7.50inV2
+    cs_pin: ${pin_cs}
+    dc_pin: ${pin_dc}
+    busy_pin: ${pin_busy}
+    reset_pin: ${pin_reset}
+    # Driven explicitly after a successful download; nothing polls it.
+    update_interval: never
+    lambda: |-
+      it.image(0, 0, id(panel_image));
+
+script:
+  - id: refresh_cycle
+    mode: single
+    then:
+      - wait_until:
+          condition:
+            wifi.connected:
+          timeout: 30s
+
+      # One exit point, at the bottom. Everything that can fail leaves
+      # `next_wake` at its default and falls through to the same sleep, so
+      # there is no path that stays awake burning the battery.
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - http_request.get:
+                url: http://${panel_host}/status
+                capture_response: true
+                on_response:
+                  then:
+                    - lambda: |-
+                        if (response->status_code != 200) {
+                          ESP_LOGW("panel", "/status returned %d", response->status_code);
+                          return;
+                        }
+                        json::parse_json(body, [](JsonObject root) -> bool {
+                          if (root["etag"].is<const char *>()) {
+                            id(server_etag) = root["etag"].as<std::string>();
+                          }
+                          if (root["next_wake"].is<int>()) {
+                            // Clamped: a bad value here either flattens the
+                            // battery overnight or leaves the panel a day stale.
+                            int seconds = root["next_wake"].as<int>();
+                            id(next_wake) = std::min(std::max(seconds, 60), 6 * 3600);
+                          }
+                          return true;
+                        });
+                        ESP_LOGI("panel", "etag %s (had %s), next wake %ds",
+                                 id(server_etag).c_str(), id(stored_etag).c_str(), id(next_wake));
+
+            - if:
+                condition:
+                  lambda: |-
+                    return !id(server_etag).empty() && id(server_etag) != id(stored_etag);
+                then:
+                  - logger.log: "Panel changed; downloading"
+                  - lambda: "id(image_settled) = false;"
+                  - component.update: panel_image
+                  - wait_until:
+                      condition:
+                        lambda: "return id(image_settled);"
+                      timeout: 60s
+                else:
+                  - logger.log: "Unchanged; skipping the download and the refresh"
+          else:
+            - logger.log: "No wifi; sleeping and trying again later"
+
+      - deep_sleep.enter:
+          id: sleeper
+          # Milliseconds. If the Prevent deep sleep switch is on this does
+          # nothing and the device simply stays up, which is how you catch it
+          # for an OTA update.
+          sleep_duration: !lambda "return (uint32_t) id(next_wake) * 1000;"
+
+# Lets you stop it sleeping from Home Assistant long enough to push an update.
+# Turn it on, wait for the next wake, flash, turn it off.
+switch:
+  - platform: template
+    name: "Prevent deep sleep"
+    id: prevent_sleep
+    icon: mdi:sleep-off
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - deep_sleep.prevent: sleeper
+    turn_off_action:
+      - deep_sleep.allow: sleeper
+
+sensor:
+  - platform: wifi_signal
+    name: "Signal"
+    update_interval: 60s
+
+  # Battery, via a divider on an ADC pin. The Waveshare driver board has no
+  # battery monitoring of its own, so this assumes one was added; delete the
+  # block if not. attenuation 12db reads up to ~3.1V, and a 2:1 divider puts a
+  # 4.2V cell inside that.
+  - platform: adc
+    pin: GPIO34
+    name: "Battery"
+    id: battery_voltage
+    unit_of_measurement: V
+    accuracy_decimals: 2
+    attenuation: 12db
+    update_interval: 60s
+    filters:
+      - multiply: 2.0
