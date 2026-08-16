@@ -23,12 +23,12 @@ people:
     name: Ed
     badge: E
     person: person.edward_speirs
-    calendar: calendar.edward_speirs_gmail_com
+    calendar: calendar.gmail
   - key: hannah
     name: Hannah
     badge: H
     person: person.hannah
-    calendar: calendar.hannah
+    calendar: calendar.hannah_sebastian_googlemail_com
 
 # Commute targets. Ed's is switchable here; Hannah's is fixed for now but uses
 # the same shape so it can gain options later without a code change.
@@ -100,6 +100,15 @@ calendar:
   # How many events to list, and how far ahead to look.
   count: 4
   days_ahead: 14
+
+  # Calendars with nobody behind them. Read after `people`, so an event that is
+  # on both a shared calendar and someone's own gets badged to the person.
+  extra:
+    - { badge: F, entity: calendar.family }
+    # Birthdays are all-day and arrive as a wall of them around a family's
+    # clusters; switch on if you want them competing for the four slots.
+    # - { badge: "*", entity: calendar.birthdays }
+    # - { badge: "*", entity: calendar.holidays_in_united_kingdom }
 
 stats:
   # Four slots in the bottom-right block. Each needs `label` and a `kind`.

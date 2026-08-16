@@ -93,6 +93,20 @@ class Config:
             )
         return token
 
+    @property
+    def calendar_sources(self) -> list[tuple[str, str]]:
+        """(badge, calendar entity) for everything the agenda should read.
+
+        People contribute their own calendar; `calendar.extra` covers the ones
+        with nobody behind them -- a shared family calendar, birthdays -- which
+        still want a badge so the panel can say whose thing it is.
+        """
+        sources = [(p.badge, p.calendar) for p in self.people if p.calendar]
+        for entry in self.calendar.get("extra", []) or []:
+            if entry.get("entity"):
+                sources.append((entry.get("badge", "·"), entry["entity"]))
+        return sources
+
     def person(self, key: str) -> Person:
         for entry in self.people:
             if entry.key == key:

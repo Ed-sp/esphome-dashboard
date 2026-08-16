@@ -70,7 +70,7 @@ def build(config: Config, hass: Hass) -> Panel:
             "calendar",
             lambda: agenda.upcoming(
                 hass,
-                config.people,
+                config.calendar_sources,
                 tz,
                 count=config.calendar.get("count", 4),
                 days_ahead=config.calendar.get("days_ahead", 14),
