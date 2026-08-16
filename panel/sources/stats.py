@@ -49,8 +49,14 @@ def _history_hours(hass: Hass, spec: dict[str, Any], days: int) -> str:
 
 
 def _pair(states: dict[str, State], spec: dict[str, Any]) -> str:
+    """One or two numbers, slashed together.
+
+    Tolerates a single entity so a head-to-head can be set up one phone at a
+    time: Ed's steps show on their own until Hannah's sensor exists, rather than
+    the whole row sitting at a dash waiting for it.
+    """
     entities = spec.get("entities") or []
-    if len(entities) < 2:
+    if not entities:
         return NO_DATA
     values = []
     for entity in entities[:2]:

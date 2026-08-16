@@ -141,9 +141,13 @@ stats:
       - media_player.downstairs
       - media_player.kitchen_dot
     state: playing
-  - label: Steps · Ed / Hannah
+  # Add Hannah's Health Connect sensor as a second entity and change the label
+  # to "Steps · Ed / Hannah"; until then this shows Ed's on its own rather than
+  # holding the row at a dash.
+  - label: Steps · Ed
     kind: pair
-    entities: []          # fill in once Health Connect sensors are enabled
+    entities:
+      - sensor.edwards_s23_daily_steps
   - label: Electricity
     kind: sum_energy
     entities: []          # fill in with your weekly kWh sensor
