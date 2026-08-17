@@ -1,0 +1,11 @@
+# Marks this repository as a Home Assistant add-on repository.
+#
+# Without this file the Supervisor will not recognise the repository when it is
+# added by URL under Settings -> Apps -> Add-on store -> three dots -> Repositories.
+# The add-ons themselves live in subdirectories, each with its own config.yaml --
+# which is why the panel moved into hallway-panel/ and its own settings are in
+# hallway-panel/panel.yaml rather than a second config.yaml.
+
+name: Ed's Home Assistant apps
+maintainer: Edward Speirs
+url: https://github.com/edwardspeirs/espHomeDashboard

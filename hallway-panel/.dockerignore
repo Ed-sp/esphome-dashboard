@@ -1,0 +1,18 @@
+# The build context is this directory, so the repository's docs/ and esphome/
+# are already outside it and need no mention.
+
+out/
+tools/
+DOCS.md
+
+# Read by the Supervisor from the add-on directory, never from inside the image.
+icon.png
+logo.png
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

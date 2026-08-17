@@ -124,12 +124,30 @@ created at all.
 that name is fixed by the Supervisor, which is why the panel's own configuration
 is `panel.yaml`.
 
-## Installing as a Home Assistant add-on
+## Installing as a Home Assistant app
 
-This repository is the add-on. Copy it to `/addons/hallway-panel` on the Home
-Assistant machine, then **Settings → Add-ons → Add-on store → ⋮ → Check for
-updates**; it appears under *Local add-ons*. [`DOCS.md`](DOCS.md) is what shows
-on the add-on's Documentation tab.
+Home Assistant renamed add-ons to **Apps** in 2026.2, so on a current install
+this lives under *Settings → Apps*. The directory on disk is still `/addons/`
+and the manifest is still `config.yaml`.
+
+This repository is an add-on *repository*: [`repository.yaml`](repository.yaml)
+at the root declares it as one, and the app itself is the
+[`hallway-panel/`](hallway-panel/) subdirectory. That layout is what the
+Supervisor looks for, and it supports both ways of installing:
+
+**As a Git repository** — Settings → Apps → Add-on store → ⋮ → *Repositories* →
+paste this repo's URL. It then appears in the store like any other.
+
+**As a local app** — copy just the `hallway-panel/` folder to
+`/addons/hallway-panel` on the Home Assistant machine, then Settings → Apps →
+Add-on store → ⋮ → *Check for updates*. It appears under *Local add-ons*.
+
+Either way, `hallway-panel/DOCS.md` is what shows on the Documentation tab, and
+`icon.png` / `logo.png` are what the store displays.
+
+> Copying the whole repository to `/addons/hallway-panel` does **not** work —
+> the Supervisor would find `repository.yaml` where it expects an app manifest.
+> Copy the subdirectory, or add the repository by URL.
 
 A few things about how it is put together:
 
