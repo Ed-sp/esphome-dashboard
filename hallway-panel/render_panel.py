@@ -21,6 +21,12 @@ def main() -> int:
     )
     parser.add_argument("-o", "--out", default="out/panel.png", type=Path)
     parser.add_argument("--scale", type=int, default=1, help="upscale for on-screen review")
+    parser.add_argument(
+        "--size",
+        type=lambda v: tuple(int(n) for n in v.lower().split("x")),
+        default=(800, 480),
+        help="panel size, e.g. 640x384 for the 7.5in V1",
+    )
     args = parser.parse_args()
 
     if not args.sample:
@@ -29,7 +35,8 @@ def main() -> int:
     from panel import sample
     from panel.render import layout
 
-    canvas = layout.render(getattr(sample, args.scene)())
+    from panel.render.geometry import for_size
+    canvas = layout.render(getattr(sample, args.scene)(), for_size(*args.size))
     image = canvas.image
     if args.scale > 1:
         from PIL import Image

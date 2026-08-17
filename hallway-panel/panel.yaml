@@ -2,9 +2,16 @@
 # Everything the layout needs to know that isn't a design decision lives here.
 
 panel:
-  width: 800
-  height: 480
-  # "density" | "columns" | "ribbon" — how rain probability is drawn under the temperature curve.
+  # 640x384 is the Waveshare 7.5" V1 (ESPHome model 7.50in); 800x480 is the V2
+  # (7.50inv2). Each has its own hand-tuned layout in panel/render/geometry.py --
+  # they are not scaled versions of one another, because 1-bit type does not
+  # survive being multiplied by 0.8. The smaller panel shows five forecast days
+  # rather than seven, three events rather than four, and three stats rather
+  # than four. An unlisted size fails at startup rather than at render time.
+  width: 640
+  height: 384
+
+  # "density" | "columns" | "ribbon" — how rain is drawn under the temperature curve.
   rain_style: density
 
 home_assistant:

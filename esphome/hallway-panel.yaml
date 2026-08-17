@@ -144,8 +144,10 @@ image:
     url: http://${panel_host}/panel.png
     format: PNG
     type: BINARY
-    # The PNG is ~8 KB; this is the streaming buffer, not the framebuffer.
-    buffer_size: 16384
+    # The PNG is ~6 KB at 640x384; this is the streaming buffer, not the
+    # framebuffer. The framebuffer itself is 640*384/8 = 30 KB, down from
+    # 48 KB on the V2, which is a useful amount of an ESP32's DRAM back.
+    buffer_size: 12288
     on_download_finished:
       then:
         - logger.log:
@@ -170,7 +172,10 @@ spi:
 display:
   - platform: waveshare_epaper
     id: eink
-    model: 7.50inV2
+    # 7.50in is the 640x384 V1. The 800x480 V2 is 7.50inv2, and the 880x528
+    # HD is 7.50in-hd-b. panel.yaml on the Home Assistant side must agree --
+    # a mismatch shows as a garbled or offset image, not a blank one.
+    model: 7.50in
     cs_pin: ${pin_cs}
     dc_pin: ${pin_dc}
     busy_pin: ${pin_busy}

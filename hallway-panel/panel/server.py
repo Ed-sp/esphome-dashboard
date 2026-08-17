@@ -91,13 +91,14 @@ class Renderer:
 
         if panel is None:
             canvas = fallback.render(
+                geometry=self.config.geometry,
                 reason=self._error,
                 last_good=self._last_success.astimezone(ZoneInfo(self.config.timezone))
                 if self._last_success
                 else None,
             )
         else:
-            canvas = layout.render(panel)
+            canvas = layout.render(panel, self.config.geometry)
 
         png = canvas.to_png_bytes()
         etag = hashlib.sha256(png).hexdigest()[:16]

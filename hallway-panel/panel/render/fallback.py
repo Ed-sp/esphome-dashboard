@@ -27,13 +27,11 @@ import yaml
 
 from . import icons
 from .canvas import Canvas, Text
+from .geometry import Geometry, V2
 
 log = logging.getLogger(__name__)
 
 DATA = Path(__file__).resolve().parents[2] / "data" / "offline.yaml"
-
-W, H = 800, 480
-M = 24
 
 
 @lru_cache(maxsize=1)
@@ -60,38 +58,45 @@ def render(
     reason: str | None = None,
     last_good: datetime | None = None,
     now: datetime | None = None,
+    geometry: Geometry | None = None,
 ) -> Canvas:
     now = now or datetime.now()
-    c = Canvas(W, H)
+    g = geometry or V2
+    w, h = g.width, g.height
+    m = g.margin * 2
+    c = Canvas(w, h)
 
-    when = (
-        f"LAST GOOD DATA {last_good:%H:%M}" if last_good else "NO GOOD DATA YET"
-    )
-    c.text(M, 36, f"CAN'T REACH HOME  ·  {when}", Text("sans_bold", 12, tracking=1.6))
-    c.rule(M, 52, W - M, 52, weight=2)
+    # Placed proportionally rather than from a tuned table: this screen is one
+    # heading, one drawing and two lines, so it survives being laid out by
+    # fractions in a way the dashboard would not.
+    small = w < 700
+    when = f"LAST GOOD DATA {last_good:%H:%M}" if last_good else "NO GOOD DATA YET"
+    c.text(m, h * 0.075, f"CAN'T REACH HOME  ·  {when}",
+           Text("sans_bold", 11 if small else 12, tracking=1.4))
+    c.rule(m, h * 0.108, w - m, h * 0.108, weight=2)
 
-    # A dithered crescent: the same shading vocabulary as the graph, so the
+    # A dithered crescent, in the same shading vocabulary as the graph, so the
     # fallback still looks like it belongs to the panel rather than an error
     # dialogue that wandered in.
-    halo, moon = 92, 132
-    c.dither_fill(2, clip=_disc(400, 186, halo))
-    icons.paste(c.image, "moon", 400 - moon / 2, 186 - moon / 2, moon)
-    for x, y, size in ((272, 92, 20), (528, 246, 15), (306, 272, 12)):
-        icons.paste(c.image, "spark", x, y, size)
+    cx, cy = w / 2, h * 0.39
+    halo = h * 0.19
+    moon = halo * 1.44
+    c.dither_fill(2, clip=_disc(cx, cy, halo))
+    icons.paste(c.image, "moon", cx - moon / 2, cy - moon / 2, round(moon))
+    for dx, dy, size in ((-0.16, -0.20, 20), (0.16, 0.125, 15), (-0.12, 0.18, 12)):
+        icons.paste(c.image, "spark", cx + dx * w, cy + dy * h, round(size * (0.8 if small else 1)))
 
     joke = _joke(now)
     if joke:
-        c.text(W / 2, 336, joke["setup"], Text("serif", 21), anchor="center")
-        c.text(W / 2, 370, joke["punchline"], Text("serif", 21), anchor="center")
+        style = Text("serif", 17 if small else 21)
+        leading = h * 0.072
+        for i, line in enumerate((joke["setup"], joke["punchline"])):
+            c.text(cx, h * 0.70 + i * leading, c.ellipsize(line, style, w - m * 2),
+                   style, anchor="center")
 
     if reason:
-        c.text(
-            W / 2,
-            H - 30,
-            c.ellipsize(reason, Text("sans", 10), W - 2 * M),
-            Text("sans", 10),
-            anchor="center",
-        )
+        style = Text("sans", 9 if small else 10)
+        c.text(cx, h - m * 0.6, c.ellipsize(reason, style, w - m * 2), style, anchor="center")
 
     return c
 

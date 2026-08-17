@@ -123,6 +123,13 @@ class Config:
     def rain_style(self) -> str:
         return self.panel.get("rain_style", "density")
 
+    @property
+    def geometry(self):
+        """The layout tuned for the configured panel, by size."""
+        from .render.geometry import for_size
+
+        return for_size(int(self.panel.get("width", 800)), int(self.panel.get("height", 480)))
+
     def rule_time(self, name: str) -> time:
         return _parse_time(self.commute["rules"][name], f"commute.rules.{name}")
 
@@ -155,6 +162,10 @@ class Config:
             raise ConfigError(
                 f"panel.rain_style is {style!r}; expected density, columns or ribbon"
             )
+
+        # Fails here rather than at the first render, and the error names the
+        # sizes that do exist.
+        self.geometry
 
 
 def load(path: str | Path | None = None) -> Config:
