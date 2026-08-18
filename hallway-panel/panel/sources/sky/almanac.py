@@ -74,13 +74,30 @@ def eclipses(context: Context) -> list[SkyEvent]:
         parts = [f"{entry['kind']} {context.when_word(when)}"]
         if entry.get("time"):
             parts.append(entry["time"])
-        if entry.get("note"):
+        # What the UK gets, not the headline. An eclipse named "total" can be a
+        # third covered from here, and one at 04:00 is only an eclipse if you
+        # are awake for it.
+        if entry.get("uk"):
+            parts.append(entry["uk"])
+        elif entry.get("note"):
             parts.append(entry["note"])
 
-        default = (
-            RANKS["eclipse_total"]
-            if "total" in str(entry["kind"]).lower()
-            else RANKS["eclipse_partial"]
-        )
-        out.append(SkyEvent(when, ", ".join(parts), entry.get("rank", default)))
+        out.append(SkyEvent(when, ", ".join(parts), entry.get("rank", _rank(entry))))
     return out
+
+
+# How good it is from here, not how rare it is in the abstract.
+_VERDICTS = {
+    "spectacle": RANKS["eclipse_total"],
+    "worth_a_look": RANKS["eclipse_partial"],
+    "easily_missed": RANKS["shower_minor"],
+}
+
+
+def _rank(entry: dict) -> int:
+    verdict = str(entry.get("verdict", "")).lower()
+    if verdict in _VERDICTS:
+        return _VERDICTS[verdict]
+    if verdict:
+        log.warning("unknown eclipse verdict %r; ranking it as worth a look", verdict)
+    return RANKS["eclipse_total"] if "total" in str(entry["kind"]).lower() else RANKS["eclipse_partial"]

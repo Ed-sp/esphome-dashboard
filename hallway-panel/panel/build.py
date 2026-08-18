@@ -79,5 +79,9 @@ def build(config: Config, hass: Hass) -> Panel:
         ),
         sky=guarded("sky", lambda: _sky_line(config, tz), None),
         stats=guarded("stats", lambda: stats.build(hass, states, config.stats), []),
-        collect=guarded("collect", lambda: collect.for_date(datetime.now(tz).date()), None),
+        collect=guarded(
+            "collect",
+            lambda: collect.for_date(datetime.now(tz).date(), config.raw.get("collect")),
+            None,
+        ),
     )

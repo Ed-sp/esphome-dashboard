@@ -32,3 +32,9 @@ jokes:
 
   - setup: "The forecast is unavailable."
     punchline: "In Oxfordshire this is not usually a reason to leave the coat."
+
+  - setup: "The panel is trying to phone home."
+    punchline: "Home is not picking up."
+
+  - setup: "E.T. phone home. E.T. phone home."
+    punchline: "E.T. receive no response from 192.168.1.8."

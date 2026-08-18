@@ -59,61 +59,71 @@ showers:
     note: before dawn
 
 # Verified against timeanddate.com and the Royal Observatory Greenwich rather
-# than written from memory. `note` is what the UK actually gets, which is often
-# a good deal less than the headline -- the August 2027 total is a partial here.
+# than written from memory.
+#
+# `uk` is the whole point of this table. The headline name of an eclipse says
+# almost nothing about whether it is worth going outside *here*: the August 2027
+# "total" is about a third covered from Oxfordshire, and a lunar eclipse you
+# sleep through is no eclipse at all. So each entry records what the UK actually
+# gets, and `verdict` grades it:
+#
+#     spectacle      set an alarm
+#     worth_a_look   step outside if you are up
+#     easily_missed  you will not notice without being told
+#
+# Solar obscuration is location-dependent and quoted for southern England.
+# Lunar eclipses look the same everywhere the Moon is up, so what matters there
+# is the time and whether it has set.
 eclipses:
   - date: 2026-08-28
-    time: "05:12"
     kind: Partial lunar eclipse
-    rank: 9
-    note: 93% at dawn, Moon sets during it
+    time: "05:12"
+    uk: 93% covered at dawn, Moon sets during it
+    verdict: worth_a_look
 
   - date: 2027-02-20
     kind: Penumbral lunar eclipse
-    rank: 5
-    note: subtle, easily missed
+    uk: a faint shading, no bite out of the Moon
+    verdict: easily_missed
 
   - date: 2027-08-02
     kind: Partial solar eclipse
-    rank: 8
-    note: about a third covered from here
+    uk: about a third covered from here
+    verdict: worth_a_look
 
   - date: 2027-08-17
     kind: Penumbral lunar eclipse
-    rank: 5
-    note: subtle, easily missed
+    uk: a faint shading, no bite out of the Moon
+    verdict: easily_missed
 
   - date: 2028-01-12
     kind: Partial lunar eclipse
-    rank: 7
+    verdict: worth_a_look
 
   - date: 2028-01-26
     kind: Annular solar eclipse
-    rank: 8
-    note: partial from the UK
+    uk: partial from here, not a ring
+    verdict: worth_a_look
 
   - date: 2028-07-06
     kind: Partial lunar eclipse
-    rank: 7
+    verdict: worth_a_look
 
   - date: 2028-12-31
-    time: "16:16"
     kind: Total lunar eclipse
-    rank: 10
-    note: totality 16:16 to 17:27
+    uk: totality 16:16 to 17:27, Moon well up
+    verdict: spectacle
 
   - date: 2029-06-12
     kind: Partial solar eclipse
-    rank: 8
+    verdict: worth_a_look
 
   - date: 2029-06-26
-    time: "03:31"
     kind: Total lunar eclipse
-    rank: 10
-    note: totality 03:31 to 05:13
+    uk: totality 03:31 to 05:13, before dawn
+    verdict: spectacle
 
   - date: 2029-12-20
-    time: "22:15"
     kind: Total lunar eclipse
-    rank: 10
-    note: totality 22:15 to 23:08
+    uk: totality 22:15 to 23:08, a civilised hour
+    verdict: spectacle

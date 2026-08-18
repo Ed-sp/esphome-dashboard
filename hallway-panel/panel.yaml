@@ -177,6 +177,24 @@ collect:
   # Local table; no network, no scraping.
   source: data/collects.yaml
 
+  # On the ~48 days a year with no collect, show the ESV verse of the day
+  # instead of cycling the bundled psalms.
+  #
+  # Needs a free key from https://api.esv.org/ (non-commercial, 5000 queries a
+  # day; this uses one). Set it in the environment as ESV_API_KEY -- as an
+  # add-on option, or `export ESV_API_KEY=...` before serve.py. It is never
+  # written to this file.
+  #
+  # References live in data/verses.yaml and are yours to edit; the text is
+  # fetched, never stored, which is what keeps the licensing simple. Attribution
+  # appears as "· ESV" in the block's title.
+  #
+  # With this off, or the key missing, or Crossway unreachable, the psalms still
+  # cover the day.
+  verse:
+    enabled: false
+    api_key_env: ESV_API_KEY
+
 sky:
   # How far ahead any provider is allowed to look.
   lookahead_days: 7

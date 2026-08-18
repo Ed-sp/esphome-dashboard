@@ -22,6 +22,7 @@ import yaml
 
 from .. import liturgy
 from ..model import Collect
+from . import verse
 
 log = logging.getLogger(__name__)
 
@@ -49,13 +50,24 @@ def load_fallbacks() -> list[dict[str, str]]:
     return raw.get("passages") or []
 
 
-def for_date(day: date | None = None) -> Collect | None:
+def for_date(day: date | None = None, settings: dict | None = None) -> Collect | None:
+    """What fills the bottom-left block, best source first.
+
+    The collect wins on the days that have one. Failing that, the ESV verse of
+    the day if it is configured -- which is most days, since only 15 of the 63
+    liturgical keys carry a collect. The bundled psalms catch everything else,
+    including every case where Crossway is unreachable.
+    """
     day = day or date.today()
     key = liturgy.key_for(day)
 
     entry = load_collects().get(key)
     if entry and entry.get("text"):
         return Collect(title=f"Collect · {liturgy.title_for(key)}", text=entry["text"].strip())
+
+    daily = verse.for_date(day, (settings or {}).get("verse"))
+    if daily:
+        return daily
 
     passages = load_fallbacks()
     if not passages:
