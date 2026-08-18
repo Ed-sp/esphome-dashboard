@@ -183,9 +183,17 @@ stats:
     kind: pair
     entities:
       - sensor.edwards_s23_daily_steps
+  # A utility_meter on the Hildebrand Glow (DCC) daily figure. The DCC variant
+  # only publishes "usage today" and no cumulative reading, but it is marked
+  # total_increasing, so utility_meter reads the midnight reset as a reset
+  # rather than as consumption and accumulates the week correctly.
+  #
+  # It reads low until a full week has passed, since it starts counting from
+  # whenever it was created rather than backfilling.
   - label: Electricity
     kind: sum_energy
-    entities: []          # fill in with your weekly kWh sensor
+    entities:
+      - sensor.electricity_this_week
 
 collect:
   # Local table; no network, no scraping.
