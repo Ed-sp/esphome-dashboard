@@ -253,7 +253,7 @@ def _youversion(day: date, settings: dict[str, Any]) -> Collect | None:
             log.warning(
                 "YouVersion refused Bible text for version %s. Accept the licence "
                 "agreement for it at developers.youversion.com, then check "
-                "/bibles?language_ranges[]=eng&all_available=true for its id. "
+                "/bibles?language_ranges[]=en&all_available=true for its id. "
                 "Falling back to a psalm until then.",
                 version,
             )

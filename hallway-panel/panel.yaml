@@ -222,17 +222,22 @@ collect:
 
     # 113 is NIVUK11, "New International Version (Anglicized) 2011".
     #
-    # Finding an id: /bibles?language_ranges[]=eng returns only what your key is
-    # licensed for and can read 204 even when passages work, so ask it with
-    # &all_available=true to see the whole catalogue. Accept the licence for the
-    # version you want at developers.youversion.com or every passage 403s --
-    # including public-domain ones.
+    # Finding an id:
+    #   /bibles?language_ranges[]=en                      what the key is licensed for
+    #   /bibles?language_ranges[]=en&all_available=true   the whole catalogue
     #
-    # version_label is the attribution shown after the reference. Biblica's full
-    # notice for the NIV is longer than a hallway panel can carry; it is in the
-    # version metadata at /bibles/113 if you ever need it somewhere fuller.
+    # The first can answer 204 even while passages work perfectly, so it is not
+    # the test of whether a version is readable -- fetching a passage is. Accept
+    # the licence for the version you want at developers.youversion.com, or
+    # every passage 403s, public-domain ones included.
     version_id: 113
-    version_label: NIVUK
+
+    # Shown after the reference, e.g. "Romans 6:5 · NIVUK". Empty for just the
+    # chapter and verse. It doubles as the on-panel attribution, so leaving it
+    # empty is a choice worth making deliberately: fine for a private display,
+    # less so anywhere the text is published. Biblica's full notice lives in the
+    # version metadata at /bibles/113.
+    version_label: ""
 
 sky:
   # How far ahead any provider is allowed to look.

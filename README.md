@@ -392,12 +392,18 @@ trades:
 | Translation | not the ESV | the ESV |
 | Response shape | undocumented, parsed defensively | documented |
 
-YouVersion costs two calls because its verse-of-the-day endpoint returns only a
-reference — `{"day": 1, "passage_id": "JHN.3.16"}` — and nothing turns a
-reference into text, so the second call pulls the whole chapter and filters it.
-Its verse record shape is not in the published quick reference, so `_verse_text`
-and `_verse_number` walk the plausible field names rather than asserting one; if
-YouVersion renames a field the panel drops to a psalm instead of raising.
+YouVersion costs two calls: its verse-of-the-day endpoint returns only a
+reference — `{"day": 230, "passage_id": "ROM.6.5"}` — and the text comes from
+`/bibles/{id}/passages/{ref}`. The ids it returns are already the form
+`/passages` accepts, ranges included, so nothing parses them; they are validated
+and passed through, since that id becomes a URL path.
+
+**Text access is not automatic.** A fresh key reads the daily reference happily
+and then 403s every passage — public-domain versions included — until a licence
+is accepted per version at developers.youversion.com. Confusingly
+`/bibles?language_ranges[]=en` can keep answering 204 even once passages work,
+so it is not the test of what a key can read; add `&all_available=true` to see
+the catalogue and just try a passage to see what is readable.
 
 Neither stores text. References carry no copyright and live in the repo; the
 text is licensed and is fetched with your own key, which keeps the licensing
