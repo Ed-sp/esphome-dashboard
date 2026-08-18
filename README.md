@@ -384,6 +384,25 @@ templatable milliseconds; `HttpContainer::status_code` is public;
 **It has not been compiled or flashed.** Config validation does not check lambda
 bodies. Build it in the Device Builder add-on before trusting it.
 
+## Versioning
+
+The Supervisor decides an update exists by comparing the manifest `version:`
+against what is installed. It does not look at commits, timestamps or file
+contents — so a change committed without a bump is invisible, which is how
+twenty-nine commits once hid behind `0.1.0`.
+
+A pre-commit hook prevents that. Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+It bumps the patch version only when files under `hallway-panel/` are staged —
+a README edit ships nothing, and bumping for it would train you to ignore
+version numbers. A `version:` already staged as changed is left alone, so a
+deliberate minor or major release is not silently turned into a patch. Skip it
+with `git commit --no-verify`.
+
 ## Verse of the day
 
 On the ~48 days a year with no collect, the bottom-left block can show a verse

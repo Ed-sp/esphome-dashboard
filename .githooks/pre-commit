@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Bump the add-on's patch version whenever the add-on itself changes.
+#
+# The Supervisor decides an update exists by comparing the manifest version
+# against what is installed. It does not look at commits, timestamps or file
+# contents -- so a change committed without a bump is invisible, which is
+# exactly how twenty-nine commits once hid behind 0.1.0.
+#
+# Enable once per clone:
+#     git config core.hooksPath .githooks
+#
+# Skip deliberately with `git commit --no-verify`.
+set -euo pipefail
+
+MANIFEST="hallway-panel/config.yaml"
+
+# Only the add-on's own files matter. Editing the README or the ESPHome YAML
+# changes nothing the Supervisor ships, so bumping for those would train you to
+# ignore version numbers.
+if ! git diff --cached --name-only | grep -q '^hallway-panel/'; then
+    exit 0
+fi
+
+# A version line already staged as changed means the bump was deliberate --
+# a minor or major release. Leave it alone rather than turning 0.3.0 into
+# 0.2.1 behind the author's back.
+if git diff --cached -U0 -- "$MANIFEST" | grep -q '^+version:'; then
+    echo "pre-commit: version already set by hand, leaving it"
+    exit 0
+fi
+
+current="$(grep -m1 '^version:' "$MANIFEST" | sed 's/.*"\(.*\)".*/\1/')"
+if [[ ! "$current" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    echo "pre-commit: cannot parse version '$current' in $MANIFEST; leaving it" >&2
+    exit 0
+fi
+
+next="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))"
+
+# Portable in-place edit: sed -i differs between GNU and BSD.
+tmp="$(mktemp)"
+sed "s/^version: \".*\"/version: \"${next}\"/" "$MANIFEST" > "$tmp"
+mv "$tmp" "$MANIFEST"
+git add "$MANIFEST"
+
+echo "pre-commit: add-on version ${current} -> ${next}"
