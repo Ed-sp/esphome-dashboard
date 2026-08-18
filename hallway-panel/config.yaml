@@ -56,9 +56,20 @@ ports_description:
 map:
   - addon_config:rw
 
+# Deployment settings and secrets only. What the panel *shows* lives in
+# panel.yaml, because this schema handles flat scalars well and the nested
+# lists panel.yaml is full of -- stats, waste types, sky providers, people --
+# badly. Forcing those in here would make the UI worse than the file.
+#
+# Secrets are the exception and belong here rather than in panel.yaml: they are
+# typed `password`, so Home Assistant masks them in the UI, keeps them in the
+# Supervisor's store rather than a file on disk, and leaves them out of the
+# YAML you would paste into a forum post asking why something is broken.
 options:
   log_level: info
   cache_seconds: 45
+  youversion_app_key: ""
+  esv_api_key: ""
 
 schema:
   # Deliberately not the full bashio level list: these map straight onto Python
@@ -68,3 +79,6 @@ schema:
   # left open on /preview hammering Home Assistant; the device polls far slower
   # than this anyway.
   cache_seconds: int(5,3600)?
+  # Both optional. The verse block falls back to a psalm without them.
+  youversion_app_key: password?
+  esv_api_key: password?

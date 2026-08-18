@@ -182,8 +182,14 @@ A few things about how it is put together:
   monochrome rasteriser and needs real font files; `font-dejavu` provides both
   roles. The build then renders the fixture scene and asserts every font role
   resolved, so a missing package fails the build rather than the first render.
-* **The add-on options are deployment settings only** — log level and render
-  cache. Everything about what the panel *shows* is in `panel.yaml`.
+* **Configuration is split by what each place is good at.** The add-on options
+  carry deployment settings and API keys; `panel.yaml` carries everything about
+  what the panel shows. Keys are typed `password`, so the Supervisor masks them
+  and stores them outside any file, and they reach the panel through the
+  environment — never written to disk or logged. The nested lists in
+  `panel.yaml` stay a file because the options schema handles flat scalars well
+  and lists-of-dictionaries badly; the add-on's Configuration card has an
+  *Edit in YAML* toggle for the half that does live there.
 
 ## Layout of the code
 

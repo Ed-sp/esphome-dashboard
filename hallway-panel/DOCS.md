@@ -18,8 +18,29 @@ hands the container a token and a route to Home Assistant on its own.
 
 ## Configuring
 
-The options on this page are deployment settings only. Everything about *what
-the panel shows* lives in a separate file, created on first start:
+Configuration lives in two places, split by what each is good at.
+
+### On this page: deployment settings and secrets
+
+| Option | Meaning |
+| --- | --- |
+| `log_level` | `debug` while setting up, `info` afterwards. |
+| `cache_seconds` | How long a render is reused before rebuilding it. Guards against a browser left open on the preview polling Home Assistant continuously; the display polls far more slowly regardless. |
+| `youversion_app_key` | Optional. Enables the verse of the day. |
+| `esv_api_key` | Optional. Alternative verse provider. |
+
+**Keys belong here, not in `panel.yaml`.** They are typed `password`, so Home
+Assistant masks them in the interface, keeps them in the Supervisor's store
+rather than a file on disk, and leaves them out of any YAML you might paste
+somewhere while asking why something is broken. They reach the panel through the
+environment and are never written to a file or a log line.
+
+The three-dot menu on this card has **Edit in YAML** if you would rather type
+these than fill in boxes.
+
+### In `panel.yaml`: what the panel shows
+
+Created on first start at:
 
 ```
 /addon_configs/hallway_panel/panel.yaml
@@ -28,10 +49,12 @@ the panel shows* lives in a separate file, created on first start:
 Edit it with the File editor add-on and restart. Keeping it out of the image
 means your settings survive rebuilding the add-on.
 
-| Option | Meaning |
-| --- | --- |
-| `log_level` | `debug` while setting up, `info` afterwards. |
-| `cache_seconds` | How long a render is reused before rebuilding it. Guards against a browser left open on the preview page polling Home Assistant continuously; the display polls far more slowly than this regardless. |
+Everything about content lives there — people and their calendars, commute rules
+and thresholds, which bin is which, the four stat slots, which sky providers are
+on, the refresh schedule. It stays a file rather than moving here because those
+are nested lists, and this options schema handles flat scalars well and nested
+lists-of-dictionaries badly. Forcing them in would make the interface worse than
+the file it replaced.
 
 ## The live preview
 

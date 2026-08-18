@@ -32,6 +32,25 @@ export PANEL_PORT="8099"
 export PANEL_LOG="$(bashio::config 'log_level' || echo info)"
 export PANEL_CACHE_SECONDS="$(bashio::config 'cache_seconds' || echo 45)"
 
+# API keys reach the panel only through the environment -- never panel.yaml,
+# never a log line. bashio returns the string "null" for an unset option, which
+# would otherwise be exported as a key literally called null and produce a
+# baffling 401, so empty it explicitly.
+for secret in youversion_app_key esv_api_key; do
+    value="$(bashio::config "${secret}" || true)"
+    [ "${value}" = "null" ] && value=""
+    # shellcheck disable=SC2163
+    export "$(echo "${secret}" | tr '[:lower:]' '[:upper:]')=${value}"
+done
+
+if bashio::var.has_value "${YOUVERSION_APP_KEY}"; then
+    bashio::log.info "YouVersion key supplied"
+elif bashio::var.has_value "${ESV_API_KEY}"; then
+    bashio::log.info "ESV key supplied"
+else
+    bashio::log.info "No Bible API key set; the verse block will show psalms"
+fi
+
 # Deliberately not bashio::network.ipv4_address here: that calls the Supervisor
 # API, which this add-on does not ask for, and under `set -e` a failure would
 # take the container down over a log line.
