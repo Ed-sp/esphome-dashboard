@@ -270,12 +270,31 @@ def create_app(config: Config | None = None) -> Flask:
     @app.get("/preview")
     def preview() -> Response:
         _, etag = renderer.render()
-        banner = (
-            f'<p class="err">Live data unavailable, showing the fixture scene: {renderer.error}</p>'
-            if renderer.error
-            else ""
+        geometry = config.geometry
+
+        if renderer.error and renderer.showing_fallback:
+            note = f"Home Assistant unreachable, showing the fallback screen: {renderer.error}"
+        elif renderer.error:
+            note = f"Home Assistant unreachable, showing the last good render: {renderer.error}"
+        else:
+            note = ""
+
+        return Response(
+            _PREVIEW.format(
+                etag=etag,
+                width=geometry.width,
+                height=geometry.height,
+                size=geometry.name,
+                banner=f'<p class="err">{note}</p>' if note else "",
+            ),
+            mimetype="text/html",
         )
-        return Response(_PREVIEW.format(etag=etag, banner=banner), mimetype="text/html")
+
+    # Ingress lands on the container root, so that is where the preview has to
+    # be. Every link and image below it is relative, which is what lets the same
+    # page work both through Home Assistant's ingress path and on the bare port
+    # the ESP32 uses.
+    app.add_url_rule("/", "root", preview)
 
     return app
 
@@ -290,13 +309,14 @@ _PREVIEW = """<!doctype html><meta charset="utf-8">
         color:#9aa0a6; margin:0 }}
   .bezel {{ background:#c9cac4; padding:12px; border-radius:5px;
             box-shadow:0 10px 30px rgba(0,0,0,.45) }}
-  img {{ display:block; image-rendering:pixelated; background:#fff }}
-  .err {{ background:#5b2222; border-left:3px solid #e08a54; padding:10px 14px; border-radius:3px }}
+  img {{ display:block; image-rendering:pixelated; background:#fff; max-width:100% }}
+  .err {{ background:#5b2222; border-left:3px solid #e08a54; padding:10px 14px;
+          border-radius:3px; max-width:60em }}
   a {{ color:#8fb0ff }}
 </style>
-<h1>Hallway panel &middot; 800 &times; 480 &middot; 1-bit</h1>
+<h1>Hallway panel &middot; {size} &middot; 1-bit</h1>
 {banner}
-<div class="bezel"><img src="/panel.png?v={etag}" width="800" height="480" alt="panel"></div>
-<p>Reloads every 30s &middot; <a href="/panel.png?force=1">force a re-render</a> &middot;
-   <a href="/health">health</a></p>
+<div class="bezel"><img src="panel.png?v={etag}" width="{width}" height="{height}" alt="panel"></div>
+<p>Reloads every 30s &middot; <a href="panel.png?force=1">force a re-render</a> &middot;
+   <a href="health">health</a> &middot; <a href="status">status</a></p>
 """

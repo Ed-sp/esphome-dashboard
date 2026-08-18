@@ -33,10 +33,23 @@ boot: auto
 # so no long-lived access token has to be created or stored anywhere.
 homeassistant_api: true
 
+# Two ways in, and both are needed.
+#
+# Ingress puts the preview in the Home Assistant sidebar, authenticated, with no
+# port to remember and no exposure beyond HA itself. That is for you.
+#
+# The mapped port is for the ESP32, which cannot authenticate against ingress
+# and needs to reach /status and /panel.png directly. Set it to null in the
+# add-on's Network settings and the panel stops updating.
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:image-frame
+panel_title: Hallway Panel
+
 ports:
   8099/tcp: 8099
 ports_description:
-  8099/tcp: Panel image, status endpoint and browser preview
+  8099/tcp: Direct access for the e-paper display (the preview is under Ingress)
 
 # addon_config appears as /config inside the container and as
 # /addon_configs/hallway_panel on the host.

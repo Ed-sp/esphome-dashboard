@@ -33,13 +33,25 @@ means your settings survive rebuilding the add-on.
 | `log_level` | `debug` while setting up, `info` afterwards. |
 | `cache_seconds` | How long a render is reused before rebuilding it. Guards against a browser left open on the preview page polling Home Assistant continuously; the display polls far more slowly than this regardless. |
 
+## The live preview
+
+**Hallway Panel appears in the sidebar.** That is the preview: the panel at
+actual size, reloading every 30 seconds, so `panel.yaml` can be edited in one
+tab and the result watched in another.
+
+It runs through Ingress, so it is authenticated by Home Assistant and there is
+no port to remember. Every link on the page is relative, which is what lets the
+same page work both there and on the bare port.
+
 ## Endpoints
 
-Reachable at `http://<home-assistant>:8099`.
+The display talks to `http://<home-assistant>:8099` directly — it cannot
+authenticate against Ingress. Clearing the port in the add-on's Network settings
+will stop the panel updating.
 
 | Path | For |
 | --- | --- |
-| `/preview` | Open this in a browser. Shows the panel at full size and reloads every 30 seconds. |
+| `/` and `/preview` | The preview page. Ingress lands on `/`. |
 | `/panel.png` | The image the display fetches. Honours `If-None-Match` and `If-Modified-Since`. |
 | `/status` | ETag, size and seconds until the display should next wake, in about 70 bytes. |
 | `/health` | Whether the last render used live data, and the reason if it did not. |

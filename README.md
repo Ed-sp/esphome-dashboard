@@ -73,7 +73,7 @@ the preview still works.
 | --- | --- |
 | `/panel.png` | The device. Honours both `If-None-Match` and `If-Modified-Since`. |
 | `/status` | ETag, byte count and seconds-to-next-wake in ~70 bytes. |
-| `/preview` | A browser, for iterating on the layout. |
+| `/` and `/preview` | A browser, for iterating on the layout. Ingress lands on `/`, which is why both exist and why every link on the page is relative. |
 | `/next-wake` | Just the sleep interval, if you only want that. |
 | `/health` | Whether the last render used live data, and why not if it didn't. |
 
