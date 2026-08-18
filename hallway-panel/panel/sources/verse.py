@@ -56,26 +56,6 @@ _CACHE_SECONDS = 12 * 3600
 # timed-out fetch on the device.
 _TIMEOUT = 6
 
-_BOOKS = {
-    "GEN": "Genesis", "EXO": "Exodus", "LEV": "Leviticus", "NUM": "Numbers",
-    "DEU": "Deuteronomy", "JOS": "Joshua", "JDG": "Judges", "RUT": "Ruth",
-    "1SA": "1 Samuel", "2SA": "2 Samuel", "1KI": "1 Kings", "2KI": "2 Kings",
-    "1CH": "1 Chronicles", "2CH": "2 Chronicles", "EZR": "Ezra", "NEH": "Nehemiah",
-    "EST": "Esther", "JOB": "Job", "PSA": "Psalm", "PRO": "Proverbs",
-    "ECC": "Ecclesiastes", "SNG": "Song of Solomon", "ISA": "Isaiah",
-    "JER": "Jeremiah", "LAM": "Lamentations", "EZK": "Ezekiel", "DAN": "Daniel",
-    "HOS": "Hosea", "JOL": "Joel", "AMO": "Amos", "OBA": "Obadiah",
-    "JON": "Jonah", "MIC": "Micah", "NAM": "Nahum", "HAB": "Habakkuk",
-    "ZEP": "Zephaniah", "HAG": "Haggai", "ZEC": "Zechariah", "MAL": "Malachi",
-    "MAT": "Matthew", "MRK": "Mark", "LUK": "Luke", "JHN": "John",
-    "ACT": "Acts", "ROM": "Romans", "1CO": "1 Corinthians", "2CO": "2 Corinthians",
-    "GAL": "Galatians", "EPH": "Ephesians", "PHP": "Philippians",
-    "COL": "Colossians", "1TH": "1 Thessalonians", "2TH": "2 Thessalonians",
-    "1TI": "1 Timothy", "2TI": "2 Timothy", "TIT": "Titus", "PHM": "Philemon",
-    "HEB": "Hebrews", "JAS": "James", "1PE": "1 Peter", "2PE": "2 Peter",
-    "1JN": "1 John", "2JN": "2 John", "3JN": "3 John", "JUD": "Jude",
-    "REV": "Revelation",
-}
 
 
 @lru_cache(maxsize=1)
@@ -176,20 +156,23 @@ def _esv(day: date, settings: dict[str, Any]) -> Collect | None:
 # -------------------------------------------------------------- youversion
 
 
-def _parse_passage_id(passage_id: str) -> tuple[str, int, list[int]] | None:
-    """``JHN.3.16`` or ``JHN.3.16-17`` -> ("JHN", 3, [16, 17])."""
-    match = re.match(
-        r"^([A-Z0-9]{3})\.(\d+)\.(\d+)(?:\s*-\s*(?:[A-Z0-9]{3}\.\d+\.)?(\d+))?$",
-        passage_id.strip().upper(),
-    )
-    if not match:
-        log.warning("could not parse a passage id from %r", passage_id)
+# A passage id goes straight into the URL path, so it is checked rather than
+# trusted -- book codes, digits, dots, ranges and joins only.
+_PASSAGE_ID = re.compile(r"^[A-Z0-9]{3}\.[0-9]+(?:\.[0-9]+)?(?:[-+][A-Z0-9.]+)?$")
+
+
+def _safe_passage_id(passage_id: str) -> str | None:
+    """Validate without interpreting.
+
+    The verse-of-the-day endpoint returns ids like ``ROM.6.5`` and
+    ``ISA.43.18-19``, and both are exactly what /passages accepts, so there is
+    nothing to parse -- only something to check before it becomes a URL.
+    """
+    candidate = passage_id.strip().upper()
+    if not _PASSAGE_ID.match(candidate):
+        log.warning("refusing an unrecognised passage id %r", passage_id)
         return None
-    book, chapter, first, last = match.groups()
-    start, end = int(first), int(last or first)
-    if end < start or end - start > 12:
-        end = start
-    return book, int(chapter), list(range(start, end + 1))
+    return candidate
 
 
 def _yv_get(path: str, key: str, params: dict | None = None) -> Any:
@@ -257,23 +240,25 @@ def _youversion(day: date, settings: dict[str, Any]) -> Collect | None:
     try:
         # 1. The curated reference for this calendar day.
         votd = _yv_get(f"verse_of_the_days/{day_of_year}", key)
-        passage_id = str(votd.get("passage_id", "")).strip()
-        parsed = _parse_passage_id(passage_id)
-        if not parsed:
+        passage_id = _safe_passage_id(str(votd.get("passage_id", "")))
+        if not passage_id:
             return None
 
-        # 2. The text for it. One call -- there is a passages endpoint, it just
-        #    needs the licence accepted before it will answer.
+        # 2. The text. The id from step 1 is already the form /passages wants,
+        #    ranges included, so it goes straight through.
         payload = _yv_get(f"bibles/{version}/passages/{passage_id}", key)
     except requests.HTTPError as exc:
         status = exc.response.status_code if exc.response is not None else None
         if status == 403:
             log.warning(
                 "YouVersion refused Bible text for version %s. Accept the licence "
-                "agreement for it at developers.youversion.com, then check /bibles "
-                "lists it. Falling back to a psalm until then.",
+                "agreement for it at developers.youversion.com, then check "
+                "/bibles?language_ranges[]=eng&all_available=true for its id. "
+                "Falling back to a psalm until then.",
                 version,
             )
+        elif status == 404:
+            log.warning("YouVersion has no version %s, or no passage %s in it", version, passage_id)
         else:
             log.info("YouVersion returned %s; falling back", status)
         return _stale(cache_key)
@@ -286,10 +271,9 @@ def _youversion(day: date, settings: dict[str, Any]) -> Collect | None:
         log.warning("YouVersion returned no text for %s in version %s", passage_id, version)
         return None
 
-    book, chapter, wanted = parsed
-    name = _BOOKS.get(book, book.title())
-    span = f"{wanted[0]}-{wanted[-1]}" if len(wanted) > 1 else str(wanted[0])
-    title = f"{name} {chapter}:{span}"
+    # The response carries a formatted reference -- "Romans 6:5", "Psalms 23:1-3"
+    # -- so there is no book table to keep in step with theirs.
+    title = str(payload.get("reference") or passage_id)
     return _store(cache_key, Collect(title=f"{title} · {label}" if label else title, text=body))
 
 

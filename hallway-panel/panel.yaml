@@ -214,17 +214,25 @@ collect:
   # Keys are read from the environment and never written here. With this off, or
   # the key missing, or the publisher unreachable, the psalms still cover the day.
   verse:
-    enabled: false
+    enabled: true
     provider: youversion
 
-    # Which environment variable holds the key. Defaults suit the provider.
+    # Which environment variable holds the key. Never write the key here.
     api_key_env: YOUVERSION_APP_KEY
 
-    # youversion only. 206 is WEBUS, public domain, so it is always licensable.
-    # Call /v1/bibles with your key to see what else it can reach, then set the
-    # id here and the label that appears after the reference.
-    version_id: 206
-    version_label: WEB
+    # 113 is NIVUK11, "New International Version (Anglicized) 2011".
+    #
+    # Finding an id: /bibles?language_ranges[]=eng returns only what your key is
+    # licensed for and can read 204 even when passages work, so ask it with
+    # &all_available=true to see the whole catalogue. Accept the licence for the
+    # version you want at developers.youversion.com or every passage 403s --
+    # including public-domain ones.
+    #
+    # version_label is the attribution shown after the reference. Biblica's full
+    # notice for the NIV is longer than a hallway panel can carry; it is in the
+    # version metadata at /bibles/113 if you ever need it somewhere fuller.
+    version_id: 113
+    version_label: NIVUK
 
 sky:
   # How far ahead any provider is allowed to look.
