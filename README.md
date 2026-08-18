@@ -1,8 +1,12 @@
 # Hallway panel
 
 A battery-powered 7.5″ monochrome e-paper dashboard for the hallway, driven by
-Home Assistant. Home Assistant renders an 800×480 1-bit PNG; an ESP32 wakes,
-fetches it, pushes it to the panel, and goes back to sleep.
+Home Assistant. Home Assistant renders a 1-bit PNG; an ESP32 wakes, fetches it,
+pushes it to the panel, and goes back to sleep.
+
+Two panel sizes are supported: **640×384** (Waveshare 7.5″ V1, ESPHome model
+`7.50in`) and **800×480** (V2, `7.50inv2`). They are separately tuned rather
+than scaled — see [Panel sizes](#panel-sizes).
 
 ![The panel](docs/panel-busy.png)
 
@@ -46,6 +50,18 @@ this — no "Leaving", no "Needs you", no shading under the graph:
 
 Left column is *today, act now*. Right column is *ahead, plan around*. The bottom
 band closes with the collect and the week's numbers.
+
+### Panel sizes
+
+0.8 in both directions with the same 5:3 aspect makes scaling look obvious, and
+it is wrong: 13px body text becomes 10.4px and the 9px labels become 7.2px,
+which in 1-bit with no antialiasing is not small type, it is noise.
+
+So `panel/render/geometry.py` holds two hand-tuned presets and the type scale
+barely moves between them. Both keep the full seven-day forecast; the smaller
+panel gives up one calendar event, one stat and one alert instead. Set the size
+in `panel.yaml` — an unlisted one fails at startup naming the sizes that exist,
+rather than at the first render.
 
 ## Running it
 
