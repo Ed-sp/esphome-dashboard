@@ -194,11 +194,16 @@ collect:
   # On the ~48 days a year with no collect, show a verse of the day instead of
   # cycling the bundled psalms. Two providers, opposite trades:
   #
-  #   youversion  One vendor, one key, and the daily selection is curated. Costs
-  #               two calls -- their verse-of-the-day endpoint returns only a
-  #               reference, and nothing turns a reference into text, so the
-  #               second call pulls the whole chapter and filters it. The ESV is
-  #               not among the versions their platform API documents.
+  #   youversion  One vendor, one key, curated daily selection. Two calls: the
+  #               verse-of-the-day endpoint returns only a reference, and the
+  #               text comes from /bibles/{id}/passages/{ref}.
+  #
+  #               A key alone is not enough. Text access needs a licence
+  #               agreement accepted PER VERSION at developers.youversion.com --
+  #               until then /bibles returns 204 and every passage returns 403,
+  #               even public-domain WEBUS. Once accepted, /bibles lists what the
+  #               key can reach; put that id in version_id below. The ESV is not
+  #               in their catalogue at all.
   #               Key from https://developers.youversion.com/ as YOUVERSION_APP_KEY.
   #
   #   esv         One call, and it is the ESV. The daily selection comes from

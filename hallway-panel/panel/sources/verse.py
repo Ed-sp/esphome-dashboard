@@ -3,12 +3,18 @@
 Two providers, because they make opposite trades.
 
 **youversion** is one vendor and one key, and the daily selection is curated
-rather than a list somebody typed. It costs two calls: their verse-of-the-day
-endpoint returns a reference and nothing else -- ``{"day": 1, "passage_id":
-"JHN.3.16"}`` -- and there is no endpoint that turns a passage_id into text, so
-the second call pulls the whole chapter and this filters it. The ESV is not
-among the versions their platform API documents; Crossway licenses it
-separately.
+rather than a list somebody typed. Two calls: the verse-of-the-day endpoint
+returns a reference and nothing else -- ``{"day": 230, "passage_id": "ROM.6.5"}``
+-- and the text comes from ``/bibles/{id}/passages/{ref}``.
+
+Text access is not automatic, which is the thing to know before wiring it up. A
+fresh app key reads the daily reference happily, then answers 204 to ``/bibles``
+and 403 ``{"message": "Access denied for 206"}`` to every passage -- including
+public-domain WEBUS -- because a licence agreement has to be accepted per
+version in the developer dashboard first. That is a dashboard step, not a code
+one, so this says so in the log and falls back rather than retrying into a wall.
+The ESV is not in their catalogue at all (``/bibles/59`` is a 404); Crossway
+licenses it separately.
 
 **esv** is one call against a documented response, and it is the ESV. The daily
 selection comes from data/verses.yaml instead, which is a list somebody typed --
@@ -197,36 +203,38 @@ def _yv_get(path: str, key: str, params: dict | None = None) -> Any:
     return response.json()
 
 
-def _verse_text(node: Any) -> str:
-    """Pull text out of a verse record without betting on one field name.
+def _passage_text(node: Any, depth: int = 0) -> str:
+    """Find the scripture in a passage response without betting on one field.
 
-    The platform API's verse shape is not in the quick reference, so this walks
-    the plausible keys rather than asserting one. If YouVersion renames a field
-    the panel drops to a psalm instead of raising.
+    The success shape is undocumented and could not be observed -- every attempt
+    was refused for want of a licence -- so this walks the plausible keys and
+    takes the longest string it finds. If YouVersion renames a field the panel
+    drops to a psalm rather than raising.
     """
     if isinstance(node, str):
         return node
+    if depth > 4:
+        return ""
+    if isinstance(node, list):
+        return " ".join(part for part in (_passage_text(n, depth + 1) for n in node) if part)
     if not isinstance(node, dict):
         return ""
-    for field in ("content", "text", "value", "body"):
+
+    for field in ("content", "text", "passage", "body", "html"):
         found = node.get(field)
         if isinstance(found, str) and found.strip():
             return found
+        if isinstance(found, (dict, list)):
+            nested = _passage_text(found, depth + 1)
+            if nested:
+                return nested
+
+    for field in ("data", "passages", "verses", "result"):
+        if field in node:
+            nested = _passage_text(node[field], depth + 1)
+            if nested:
+                return nested
     return ""
-
-
-def _verse_number(node: Any) -> int | None:
-    if not isinstance(node, dict):
-        return None
-    for field in ("verse", "number", "verse_number", "usfm", "reference"):
-        found = node.get(field)
-        if isinstance(found, int):
-            return found
-        if isinstance(found, str):
-            digits = re.findall(r"\d+", found)
-            if digits:
-                return int(digits[-1])
-    return None
 
 
 def _youversion(day: date, settings: dict[str, Any]) -> Collect | None:
@@ -235,8 +243,9 @@ def _youversion(day: date, settings: dict[str, Any]) -> Collect | None:
         log.info("no YouVersion app key; skipping the verse of the day")
         return None
 
-    # 206 is WEBUS, public domain, so it is always licensable. Change it in
-    # panel.yaml once /bibles tells you what your key can actually reach.
+    # 206 is WEBUS, public domain -- but "public domain" does not mean "no
+    # licence to accept". Call /bibles once the agreements are signed to see
+    # what this key can actually reach.
     version = str(settings.get("version_id", 206))
     label = str(settings.get("version_label", "") or "")
     day_of_year = day.timetuple().tm_yday
@@ -248,29 +257,36 @@ def _youversion(day: date, settings: dict[str, Any]) -> Collect | None:
     try:
         # 1. The curated reference for this calendar day.
         votd = _yv_get(f"verse_of_the_days/{day_of_year}", key)
-        parsed = _parse_passage_id(str(votd.get("passage_id", "")))
+        passage_id = str(votd.get("passage_id", "")).strip()
+        parsed = _parse_passage_id(passage_id)
         if not parsed:
             return None
-        book, chapter, wanted = parsed
 
-        # 2. The chapter, filtered. There is no endpoint turning a passage_id
-        #    into text, which is what makes this two calls rather than one.
-        payload = _yv_get(f"bibles/{version}/books/{book}/chapters/{chapter}/verses", key)
+        # 2. The text for it. One call -- there is a passages endpoint, it just
+        #    needs the licence accepted before it will answer.
+        payload = _yv_get(f"bibles/{version}/passages/{passage_id}", key)
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status == 403:
+            log.warning(
+                "YouVersion refused Bible text for version %s. Accept the licence "
+                "agreement for it at developers.youversion.com, then check /bibles "
+                "lists it. Falling back to a psalm until then.",
+                version,
+            )
+        else:
+            log.info("YouVersion returned %s; falling back", status)
+        return _stale(cache_key)
     except (requests.RequestException, ValueError) as exc:
         log.info("YouVersion unreachable (%s); falling back", exc)
         return _stale(cache_key)
 
-    rows = payload.get("data") if isinstance(payload, dict) else payload
-    if not isinstance(rows, list):
-        log.warning("YouVersion returned an unexpected chapter shape for %s %s", book, chapter)
-        return None
-
-    picked = [_verse_text(row) for row in rows if _verse_number(row) in wanted]
-    body = _clean(" ".join(text for text in picked if text))
+    body = _clean(_passage_text(payload))
     if not body:
-        log.warning("no verse text found for %s.%s.%s", book, chapter, wanted)
+        log.warning("YouVersion returned no text for %s in version %s", passage_id, version)
         return None
 
+    book, chapter, wanted = parsed
     name = _BOOKS.get(book, book.title())
     span = f"{wanted[0]}-{wanted[-1]}" if len(wanted) > 1 else str(wanted[0])
     title = f"{name} {chapter}:{span}"
