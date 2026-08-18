@@ -128,8 +128,18 @@ alerts:
   panel_rssi_below: -80
   # Cap so the block can never overflow its band.
   max_lines: 3
+  # A plant only raises an alert once it has a moisture sensor. An interval
+  # alone is not enough to go on -- with no last-watered date to count from,
+  # guessing would put a permanent nag on the wall.
+  #
+  # `moisture_below` is per plant on purpose. A dracaena wants to dry out
+  # properly between waterings and rots far more readily than it wilts, so 20-25
+  # is right for it where these sensors often default to 40. Set it by what the
+  # plant wants, not by what the sensor suggests.
   plants:
-    - { name: Monstera, sensor: null, days_between_watering: 7 }
+    - name: Dracaena
+      sensor: null    # sensor.soil_sensor_soil_moisture, once ZHA is back
+      moisture_below: 22
 
 calendar:
   # How many events to list, and how far ahead to look.
