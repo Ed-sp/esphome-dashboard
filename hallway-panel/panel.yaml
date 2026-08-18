@@ -177,23 +177,35 @@ collect:
   # Local table; no network, no scraping.
   source: data/collects.yaml
 
-  # On the ~48 days a year with no collect, show the ESV verse of the day
-  # instead of cycling the bundled psalms.
+  # On the ~48 days a year with no collect, show a verse of the day instead of
+  # cycling the bundled psalms. Two providers, opposite trades:
   #
-  # Needs a free key from https://api.esv.org/ (non-commercial, 5000 queries a
-  # day; this uses one). Set it in the environment as ESV_API_KEY -- as an
-  # add-on option, or `export ESV_API_KEY=...` before serve.py. It is never
-  # written to this file.
+  #   youversion  One vendor, one key, and the daily selection is curated. Costs
+  #               two calls -- their verse-of-the-day endpoint returns only a
+  #               reference, and nothing turns a reference into text, so the
+  #               second call pulls the whole chapter and filters it. The ESV is
+  #               not among the versions their platform API documents.
+  #               Key from https://developers.youversion.com/ as YOUVERSION_APP_KEY.
   #
-  # References live in data/verses.yaml and are yours to edit; the text is
-  # fetched, never stored, which is what keeps the licensing simple. Attribution
-  # appears as "· ESV" in the block's title.
+  #   esv         One call, and it is the ESV. The daily selection comes from
+  #               data/verses.yaml, which is a list rather than a curation.
+  #               Free non-commercial key from https://api.esv.org/ (5000 a day,
+  #               this uses one) as ESV_API_KEY.
   #
-  # With this off, or the key missing, or Crossway unreachable, the psalms still
-  # cover the day.
+  # Keys are read from the environment and never written here. With this off, or
+  # the key missing, or the publisher unreachable, the psalms still cover the day.
   verse:
     enabled: false
-    api_key_env: ESV_API_KEY
+    provider: youversion
+
+    # Which environment variable holds the key. Defaults suit the provider.
+    api_key_env: YOUVERSION_APP_KEY
+
+    # youversion only. 206 is WEBUS, public domain, so it is always licensable.
+    # Call /v1/bibles with your key to see what else it can reach, then set the
+    # id here and the label that appears after the reference.
+    version_id: 206
+    version_label: WEB
 
 sky:
   # How far ahead any provider is allowed to look.

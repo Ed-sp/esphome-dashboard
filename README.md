@@ -378,6 +378,35 @@ templatable milliseconds; `HttpContainer::status_code` is public;
 **It has not been compiled or flashed.** Config validation does not check lambda
 bodies. Build it in the Device Builder add-on before trusting it.
 
+## Verse of the day
+
+On the ~48 days a year with no collect, the bottom-left block can show a verse
+instead of cycling the bundled psalms. Two providers, and they make opposite
+trades:
+
+| | `youversion` | `esv` |
+| --- | --- | --- |
+| Keys | one | one |
+| Calls per day | **two** | one |
+| Daily selection | curated by YouVersion | `data/verses.yaml`, 91 references |
+| Translation | not the ESV | the ESV |
+| Response shape | undocumented, parsed defensively | documented |
+
+YouVersion costs two calls because its verse-of-the-day endpoint returns only a
+reference — `{"day": 1, "passage_id": "JHN.3.16"}` — and nothing turns a
+reference into text, so the second call pulls the whole chapter and filters it.
+Its verse record shape is not in the published quick reference, so `_verse_text`
+and `_verse_number` walk the plausible field names rather than asserting one; if
+YouVersion renames a field the panel drops to a psalm instead of raising.
+
+Neither stores text. References carry no copyright and live in the repo; the
+text is licensed and is fetched with your own key, which keeps the licensing
+simple and means the panel shows the publisher's current text rather than
+something pasted into a file once.
+
+The block resolves collect → verse → psalm, so a missing key, a switched-off
+provider or an outage all land somewhere sensible.
+
 ## Still to build
 * **Add-on packaging.** Dockerfile and manifest.
 * **ESPHome firmware.** Wake, fetch, compare ETag, draw or skip, read
