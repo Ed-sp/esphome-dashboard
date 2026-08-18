@@ -136,10 +136,14 @@ alerts:
   # properly between waterings and rots far more readily than it wilts, so 20-25
   # is right for it where these sensors often default to 40. Set it by what the
   # plant wants, not by what the sensor suggests.
+  # `sensor` takes either a moisture percentage or a binary sensor. Pointing it
+  # at the threshold helper means the panel and the phone notification read the
+  # same entity, hysteresis included, so they cannot disagree at the boundary.
+  # Point it at sensor.soil_sensor_humidity instead and moisture_below applies.
   plants:
     - name: Dracaena
-      sensor: null    # sensor.soil_sensor_soil_moisture, once ZHA is back
-      moisture_below: 22
+      sensor: binary_sensor.dracaena_needs_water
+      moisture_below: 22    # only used if `sensor` is a numeric one
 
 calendar:
   # How many events to list, and how far ahead to look.

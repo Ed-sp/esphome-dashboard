@@ -147,9 +147,15 @@ def panel_health(config: Config, states: dict[str, State]) -> list[Alert]:
 def plants(config: Config, states: dict[str, State], tz: ZoneInfo) -> list[Alert]:
     """Watering reminders.
 
-    Only fires for plants with a configured sensor. A plant with nothing but a
-    watering interval has no last-watered date to count from, so guessing would
-    put a permanent nag on the wall.
+    `sensor` may be either a moisture percentage or a binary sensor. Point it at
+    a threshold helper and the panel says exactly what the phone notification
+    says, because both read the same entity -- including its hysteresis. Point
+    it at the raw moisture sensor and `moisture_below` applies instead, which is
+    simpler but will disagree with any notification around the boundary.
+
+    Only fires for plants with a sensor. A plant with nothing but a watering
+    interval has no last-watered date to count from, so guessing would put a
+    permanent nag on the wall.
     """
     out: list[Alert] = []
     for plant in config.alerts.get("plants", []) or []:
@@ -159,8 +165,14 @@ def plants(config: Config, states: dict[str, State], tz: ZoneInfo) -> list[Alert
         state = states.get(sensor)
         if state is None or state.missing:
             continue
-        moisture = state.number()
-        if moisture is not None and moisture < plant.get("moisture_below", 25):
+
+        if sensor.startswith("binary_sensor."):
+            thirsty = state.state == "on"
+        else:
+            moisture = state.number()
+            thirsty = moisture is not None and moisture < plant.get("moisture_below", 25)
+
+        if thirsty:
             out.append(Alert(text=f"{plant['name']} needs water", icon="leaf"))
     return out
 
