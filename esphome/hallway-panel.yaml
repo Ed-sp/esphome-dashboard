@@ -32,26 +32,40 @@ substitutions:
   # the case where the panel service cannot be reached at all.
   fallback_sleep: 30min
 
-  # Wiring for a FireBeetle 2 ESP32-E. The panel is not pre-wired on this board,
-  # so these are a choice rather than a fact -- but a considered one:
+  # Wiring for a FireBeetle 2 ESP32-C6 (DFR1075). The panel is not pre-wired, so
+  # these are a choice -- constrained by what the C6 actually allows:
   #
-  #   * CLK and MOSI are the hardware VSPI pins, labelled SCK and MOSI on the
-  #     silkscreen.
-  #   * The four control pins avoid every strapping pin. IO0, IO2, IO12 and IO15
-  #     all change how the ESP32 boots if something holds them at the wrong
-  #     level, and an e-paper panel asserting CS or RST during reset is exactly
-  #     the sort of thing that causes an intermittent brick.
-  #   * IO34-39 are input-only on this board and IO34 already carries the
-  #     battery divider, so none of them are used here.
+  #   GPIO 24-30   unusable, SPI flash and PSRAM
+  #   GPIO 4,5,8,9,15  strapping pins; a panel holding one at the wrong level
+  #                during reset is how intermittent bricks happen
+  #   GPIO 12,13   USB-Serial-JTAG, so unusable while you want a console
+  #   GPIO 0       taken here by the board's own battery divider
+  #   GPIO 16,17   UART0
   #
-  # For Waveshare's own ESP32 driver board instead:
-  #   busy 25, reset 26, dc 27, cs 15, clk 13, mosi 14
-  pin_busy: GPIO25
-  pin_reset: GPIO26
-  pin_dc: GPIO14
-  pin_cs: GPIO13
-  pin_clk: GPIO18
-  pin_mosi: GPIO23
+  # CLK and MOSI match the board's documented SPI (SCK 23, MOSI 22). The four
+  # control pins sit immediately below them, which keeps them on the same
+  # header, and 21 is the GDI MISO line -- free here because e-paper is
+  # write-only, but worth remembering if you ever use that connector.
+  #
+  # CHECK THESE AGAINST THE SILKSCREEN. DFRobot label the headers D2, D3, A0 and
+  # so on, and their published pinout does not give the label-to-GPIO mapping;
+  # these are legal for the chip, which is not the same as broken out on your
+  # board.
+  #
+  # There is no GPIO34 on a C6, so nothing carries over from the ESP32-E.
+  pin_busy: GPIO21
+  pin_reset: GPIO20
+  pin_dc: GPIO19
+  pin_cs: GPIO18
+  pin_clk: GPIO23
+  pin_mosi: GPIO22
+
+  # IO0 is the board's battery voltage detection pin. DFRobot document the pin
+  # but not the divider ratio, so this is the usual 1:1 assumption and wants
+  # checking: measure the cell with a meter, compare, and change this until they
+  # agree. attenuation 12db reads to about 3.1V, so a 2:1 divider puts a full
+  # 4.2V cell inside range.
+  battery_multiplier: "2.0"
 
 esphome:
   name: ${device_name}
@@ -63,14 +77,15 @@ esphome:
       - script.execute: refresh_cycle
 
 esp32:
-  # FireBeetle 2 ESP32-E (DFR0654). A good choice for this: its deep-sleep floor
-  # is around 13 uA, where a typical dev board leaks milliamps through the power
-  # LED and USB-serial chip and quietly decides your battery life regardless of
-  # how cleverly the wake schedule is arranged.
+  # FireBeetle 2 ESP32-C6 (DFR1075). DFRobot quote 16 uA deep sleep on hardware
+  # v1.0 and 36 uA on v1.2 -- either is far below the milliamps a typical dev
+  # board leaks through its power LED and USB-serial chip, and that floor decides
+  # battery life far more than the wake schedule does.
   #
-  # The older FireBeetle ESP32 (DFR0478) is `firebeetle32`, and its battery
-  # divider is not always populated -- check before trusting the reading.
-  board: dfrobot_firebeetle2_esp32e
+  # The C6 is RISC-V with a GPIO matrix rather than fixed SPI peripherals, so the
+  # pin choice above is genuinely a choice; on the older ESP32-E it was VSPI or
+  # nothing.
+  board: dfrobot_firebeetle2_esp32c6
   framework:
     type: esp-idf
 
@@ -269,14 +284,14 @@ sensor:
     name: "Signal"
     update_interval: 60s
 
-  # The FireBeetle 2 ESP32-E has this built in: IO34 sits on a 1M/1M divider off
-  # VBAT, halving a LiPo's 4.2V into what the ADC can survive. 12db attenuation
-  # reads to about 3.1V, so the multiply puts it back into real volts.
+  # IO0 is the board's battery detection pin. The multiplier is a substitution
+  # because DFRobot publish the pin but not the divider ratio -- calibrate it
+  # against a meter rather than trusting the default.
   #
   # Only a handful of readings get taken before the device sleeps again, and the
   # ESP32's ADC is noisy, so it is averaged rather than reported raw.
   - platform: adc
-    pin: GPIO34
+    pin: GPIO0
     name: "Battery"
     id: battery_voltage
     unit_of_measurement: V
@@ -285,7 +300,7 @@ sensor:
     update_interval: 10s
     samples: 8
     filters:
-      - multiply: 2.0
+      - multiply: ${battery_multiplier}
       - median:
           window_size: 3
           send_every: 3

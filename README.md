@@ -356,20 +356,41 @@ exchange from every wake, with the radio on.
 
 ### Pins
 
-The substitutions at the top assume Waveshare's own ESP32 e-Paper Driver Board:
+Targets a **FireBeetle 2 ESP32-C6** (DFR1075). The C6 is RISC-V with a GPIO
+matrix rather than fixed SPI peripherals, so the pins are a real choice — and a
+constrained one:
 
 | | |
 | --- | --- |
-| BUSY | GPIO25 |
-| RST | GPIO26 |
-| DC | GPIO27 |
-| CS | GPIO15 |
-| CLK | GPIO13 |
-| MOSI | GPIO14 |
+| 24–30 | unusable, SPI flash and PSRAM |
+| 4, 5, 8, 9, 15 | strapping pins |
+| 12, 13 | USB-Serial-JTAG |
+| 0 | the board's own battery divider |
+| 16, 17 | UART0 |
 
-A LILYGO T5 or FireBeetle wires it differently — check the silkscreen before
-flashing. The battery sensor assumes a divider on GPIO34 that the Waveshare
-board does not have; delete that block if there isn't one.
+Which leaves the wiring below. CLK and MOSI match the board's documented SPI;
+the control pins sit immediately under them so they stay on one header.
+
+| | |
+| --- | --- |
+| BUSY | GPIO21 |
+| RST | GPIO20 |
+| DC | GPIO19 |
+| CS | GPIO18 |
+| CLK | GPIO23 |
+| MOSI | GPIO22 |
+| Battery | GPIO0 |
+
+**Check them against the silkscreen.** DFRobot label the headers `D2`, `D3`,
+`A0` and so on, and their published pinout does not give the label-to-GPIO
+mapping — so these are verified legal for the chip, which is not the same as
+verified broken out on your board. ESPHome does enforce the chip's rules:
+GPIO25 is refused as flash, GPIO31 as out of range, GPIO13 warns about
+USB-JTAG.
+
+Nothing carries over from the ESP32-E — there is no GPIO34 on a C6. The battery
+multiplier is a substitution because DFRobot publish the detection pin but not
+the divider ratio; calibrate it against a meter rather than trusting the 2.0.
 
 ### How far this has been checked
 
