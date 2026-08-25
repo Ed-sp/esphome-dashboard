@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from PIL import Image, ImageChops, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageOps
 
 from . import fonts
 
@@ -251,11 +251,16 @@ class Canvas:
 
     # ---------------------------------------------------------------- output
 
-    def to_png_bytes(self) -> bytes:
+    def to_png_bytes(self, invert=False) -> bytes:
         from io import BytesIO
 
         buffer = BytesIO()
+        
+        if invert:
+            image = ImageOps.invert(self.image)
+        else:
+            image = self.image
         # optimize=True costs a few ms and shaves a useful chunk off the transfer,
         # which matters because the dither patterns compress poorly.
-        self.image.save(buffer, format="PNG", optimize=True, bits=1)
+        image.save(buffer, format="PNG", optimize=True, bits=1)
         return buffer.getvalue()

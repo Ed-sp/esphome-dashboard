@@ -62,7 +62,7 @@ class Renderer:
     def stale(self) -> bool:
         return self._png is None or (time.monotonic() - self._rendered_at) > CACHE_SECONDS
 
-    def render(self, *, force: bool = False) -> tuple[bytes, str]:
+    def render(self, *, force: bool = False, invert=False) -> tuple[bytes, str]:
         if not force and not self.stale and self._png and self._etag:
             return self._png, self._etag
 
@@ -100,7 +100,7 @@ class Renderer:
         else:
             canvas = layout.render(panel, self.config.geometry)
 
-        png = canvas.to_png_bytes()
+        png = canvas.to_png_bytes(invert=invert)
         etag = hashlib.sha256(png).hexdigest()[:16]
 
         if etag != self._etag:
@@ -191,7 +191,10 @@ def create_app(config: Config | None = None) -> Flask:
 
     @app.get("/panel.png")
     def panel_png() -> Response:
-        png, etag = renderer.render(force=request.args.get("force") is not None)
+        png, etag = renderer.render(
+            force=request.args.get("force") is not None,
+            invert=request.args.get("invert") is not None
+        )
         last_modified = http_date(renderer.changed_at)
 
         # Both conditional forms are honoured, because the two ways of driving
