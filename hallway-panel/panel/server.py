@@ -19,9 +19,11 @@ import os
 import time
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime, parsedate_to_datetime
+from io import BytesIO
 from zoneinfo import ZoneInfo
 
 from flask import Flask, Response, jsonify, request
+from PIL import Image, ImageOps
 
 from . import build as builder
 from .config import Config, ConfigError, load
@@ -62,9 +64,14 @@ class Renderer:
     def stale(self) -> bool:
         return self._png is None or (time.monotonic() - self._rendered_at) > CACHE_SECONDS
 
-    def render(self, *, force: bool = False, invert=False) -> tuple[bytes, str]:
+    def render(self, *, force: bool = False, invert: bool = False) -> tuple[bytes, str]:
+        """Return (png, etag). `invert` is applied on top of the cached render,
+        not baked into it -- otherwise a cache hit would hand back whatever
+        invert setting happened to be requested when the cache was last filled,
+        which is why this used to only take effect together with `force`.
+        """
         if not force and not self.stale and self._png and self._etag:
-            return self._png, self._etag
+            return self._served(invert)
 
         try:
             hass = Hass(self.config.base_url, self.config.token)
@@ -100,14 +107,23 @@ class Renderer:
         else:
             canvas = layout.render(panel, self.config.geometry)
 
-        png = canvas.to_png_bytes(invert=invert)
+        png = canvas.to_png_bytes()
         etag = hashlib.sha256(png).hexdigest()[:16]
 
         if etag != self._etag:
             self._changed_at = datetime.now(timezone.utc)
 
         self._png, self._etag, self._rendered_at = png, etag, time.monotonic()
-        return png, etag
+        return self._served(invert)
+
+    def _served(self, invert: bool) -> tuple[bytes, str]:
+        """The cached render, inverted on the way out if asked -- so an
+        `invert` request always matches what is actually served, cache hit or
+        not, rather than only on the request that happened to (re)render.
+        """
+        if not invert:
+            return self._png, self._etag
+        return _invert_png(self._png), f"{self._etag}-inv"
 
     @property
     def changed_at(self) -> datetime:
@@ -127,6 +143,13 @@ class Renderer:
     @property
     def age_seconds(self) -> float:
         return time.monotonic() - self._rendered_at if self._png else -1.0
+
+
+def _invert_png(png: bytes) -> bytes:
+    image = ImageOps.invert(Image.open(BytesIO(png)))
+    out = BytesIO()
+    image.save(out, format="PNG", optimize=True, bits=1)
+    return out.getvalue()
 
 
 def http_date(when: datetime) -> str:

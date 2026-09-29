@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 from . import fonts
 
@@ -251,16 +251,12 @@ class Canvas:
 
     # ---------------------------------------------------------------- output
 
-    def to_png_bytes(self, invert=False) -> bytes:
+    def to_png_bytes(self) -> bytes:
         from io import BytesIO
 
         buffer = BytesIO()
-        
-        if invert:
-            image = ImageOps.invert(self.image)
-        else:
-            image = self.image
         # optimize=True costs a few ms and shaves a useful chunk off the transfer,
-        # which matters because the dither patterns compress poorly.
-        image.save(buffer, format="PNG", optimize=True, bits=1)
+        # which matters because the dither patterns compress poorly. Inversion is
+        # applied by the server on top of this, not here -- see server._invert_png.
+        self.image.save(buffer, format="PNG", optimize=True, bits=1)
         return buffer.getvalue()
