@@ -169,6 +169,40 @@ def _not_modified_since(header: str, changed_at: datetime) -> bool:
     return changed_at.replace(microsecond=0) <= since
 
 
+def _next_change_cap(config: Config, now: datetime, seconds: int) -> int:
+    """Shrink a sleep so it never runs past a moment the panel's content can
+    flip -- right now, that's just the waste alert's show/hide times.
+
+    Without this, a device on a 20-60 minute cycle can sleep straight through
+    18:00 and keep showing yesterday's (empty) panel for most of an hour after
+    the bin reminder was supposed to appear. Waking a little early when
+    nothing was actually due that day is harmless; the missed reminder is not.
+    """
+    if not config.waste.get("calendar"):
+        return seconds
+
+    try:
+        show_from = datetime.strptime(config.waste["show_from"], "%H:%M").time()
+        hide_at = datetime.strptime(config.waste["hide_at"], "%H:%M").time()
+    except (KeyError, ValueError):
+        return seconds
+
+    def next_occurrence(at) -> datetime:
+        candidate = now.replace(hour=at.hour, minute=at.minute, second=0, microsecond=0)
+        if candidate <= now:
+            candidate += timedelta(days=1)
+        return candidate
+
+    boundary = min(next_occurrence(show_from), next_occurrence(hide_at))
+    until_boundary = (boundary - now).total_seconds()
+    if until_boundary >= seconds:
+        return seconds
+
+    # Land just past the boundary rather than on it, so the >= / < comparisons
+    # in alerts.waste() have already tipped by the time this wake renders.
+    return max(60, int(until_boundary) + 30)
+
+
 def next_wake_seconds(config: Config) -> int:
     """How long the device should sleep, from presence and the sleep schedule."""
     refresh = config.refresh
@@ -189,6 +223,9 @@ def next_wake_seconds(config: Config) -> int:
     anyone_home = any(state_of(person.person) == "home" for person in config.people)
 
     if asleep:
+        # Asleep is the one case that does not get capped: a bin reminder is
+        # not worth waking someone in the night for, so this rides through to
+        # the normal wake_after_sleep time regardless.
         wake_at = datetime.strptime(refresh.get("wake_after_sleep", "05:45"), "%H:%M").time()
         target = now.replace(hour=wake_at.hour, minute=wake_at.minute, second=0, microsecond=0)
         if target <= now:
@@ -196,15 +233,15 @@ def next_wake_seconds(config: Config) -> int:
         return max(300, int((target - now).total_seconds()))
 
     if not anyone_home:
-        return refresh.get("away_minutes", 60) * 60
+        return _next_change_cap(config, now, refresh.get("away_minutes", 60) * 60)
 
     window = refresh.get("commute_window", ["06:00", "09:00"])
     start = datetime.strptime(window[0], "%H:%M").time()
     end = datetime.strptime(window[1], "%H:%M").time()
     if start <= now.time() < end and now.weekday() < 5:
-        return refresh.get("commute_minutes", 10) * 60
+        return _next_change_cap(config, now, refresh.get("commute_minutes", 10) * 60)
 
-    return refresh.get("awake_minutes", 20) * 60
+    return _next_change_cap(config, now, refresh.get("awake_minutes", 20) * 60)
 
 
 def create_app(config: Config | None = None) -> Flask:
