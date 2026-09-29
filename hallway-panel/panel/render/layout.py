@@ -173,9 +173,11 @@ def _leaving(c: Canvas, g: Geometry, commutes: list[Commute]) -> None:
 
 
 def _needs_you(c: Canvas, g: Geometry, alerts: list[Alert]) -> None:
+    # No heading here on purpose -- the block used to say "Needs you", which
+    # read as an accusation for what is often just a bin reminder. Left blank
+    # rather than relabelled: the row of alerts speaks for itself.
     if not alerts:
         return
-    _eyebrow(c, g, g.margin, g.alerts_eyebrow_y, "Needs you")
 
     y = g.alert_top
     for alert in alerts:

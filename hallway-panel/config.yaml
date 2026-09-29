@@ -10,7 +10,7 @@
 # below are deployment concerns only.
 
 name: Hallway Panel
-version: "0.2.2"
+version: "0.2.3"
 slug: hallway_panel
 description: >-
   Renders an 800x480 1-bit dashboard for a battery-powered e-paper display,
