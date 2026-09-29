@@ -221,7 +221,7 @@ V2 = Geometry(
     type=Type(
         date=20, now_temp=26, now_summary=11, now_detail=9,
         eyebrow=10, eyebrow_tracking=1.5,
-        graph_label=9, graph_peak=10,
+        graph_label=10, graph_peak=12,
         commute_name=11, commute_time=22, commute_chip=11, commute_note=9,
         alert_bar=13, alert_row=13,
         week_day=11, week_rain=9, week_high=14, week_low=11,
@@ -313,7 +313,7 @@ V1 = Geometry(
     type=Type(
         date=17, now_temp=22, now_summary=10, now_detail=8,
         eyebrow=9, eyebrow_tracking=1.2,
-        graph_label=8, graph_peak=9,
+        graph_label=9, graph_peak=11,
         # The note sits in ~200px of clear space, so it can afford 9px; at 8 it
         # read as crowding the chip when it was only small.
         commute_name=10, commute_time=19, commute_chip=10, commute_note=9,

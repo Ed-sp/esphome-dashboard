@@ -113,7 +113,7 @@ def _graph(c: Canvas, g: Geometry, p: Panel) -> None:
         boundary = x_at(i) - step / 2
         c.rule(boundary, g.graph_top - 2, boundary, g.graph_base, tone="dashed")
         glyph = "moon" if hours[i].night else "sun"
-        c.image.paste(0, (round(boundary) + 3, g.graph_top - 3), icons.render(glyph, 10))
+        c.image.paste(0, (round(boundary) + 3, g.graph_top - 3), icons.render(glyph, 13))
 
     c.polyline(points, weight=2)
     c.rule(x0, g.graph_base, x_at(len(hours) - 1), g.graph_base)
