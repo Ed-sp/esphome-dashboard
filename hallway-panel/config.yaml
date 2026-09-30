@@ -10,7 +10,7 @@
 # below are deployment concerns only.
 
 name: Hallway Panel
-version: "0.2.5"
+version: "0.2.6"
 slug: hallway_panel
 description: >-
   Renders an 800x480 1-bit dashboard for a battery-powered e-paper display,
@@ -70,6 +70,9 @@ options:
   cache_seconds: 45
   youversion_app_key: ""
   esv_api_key: ""
+  spotify_client_id: ""
+  spotify_client_secret: ""
+  spotify_redirect_uri: ""
 
 schema:
   # Deliberately not the full bashio level list: these map straight onto Python
@@ -82,3 +85,10 @@ schema:
   # Both optional. The verse block falls back to a psalm without them.
   youversion_app_key: password?
   esv_api_key: password?
+  # All three optional, and all three needed together for the Music stat.
+  # spotify_redirect_uri is not a secret, but it has to match whatever is
+  # registered in the Spotify Developer Dashboard exactly, so it lives here
+  # rather than panel.yaml -- one place to get it right, not two.
+  spotify_client_id: str?
+  spotify_client_secret: password?
+  spotify_redirect_uri: str?

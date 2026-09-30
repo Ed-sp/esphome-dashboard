@@ -65,6 +65,17 @@ class Config:
         self.timezone = ha.get("timezone", "Europe/London")
         self._token_env = ha.get("token_env", "HA_TOKEN")
 
+        # Spotify reaches the panel the same way the YouVersion/ESV keys do --
+        # through the add-on's own options, never panel.yaml -- and is entirely
+        # optional: the Music stat just reads NO_DATA until all three are set
+        # and the one-time /spotify/login consent has been done.
+        self.spotify_client_id = os.environ.get("SPOTIFY_CLIENT_ID", "")
+        self.spotify_client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
+        self.spotify_redirect_uri = os.environ.get("SPOTIFY_REDIRECT_URI", "")
+        self.spotify_state_path = Path(
+            os.environ.get("PANEL_SPOTIFY_STATE", "/data/spotify.json")
+        )
+
         self.people = [
             Person(
                 key=entry["key"],

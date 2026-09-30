@@ -36,11 +36,20 @@ export PANEL_CACHE_SECONDS="$(bashio::config 'cache_seconds' || echo 45)"
 # never a log line. bashio returns the string "null" for an unset option, which
 # would otherwise be exported as a key literally called null and produce a
 # baffling 401, so empty it explicitly.
-for secret in youversion_app_key esv_api_key; do
+for secret in youversion_app_key esv_api_key spotify_client_secret; do
     value="$(bashio::config "${secret}" || true)"
     [ "${value}" = "null" ] && value=""
     # shellcheck disable=SC2163
     export "$(echo "${secret}" | tr '[:lower:]' '[:upper:]')=${value}"
+done
+
+# Not secret, but read the same guarded way -- "null" would otherwise become a
+# literal redirect URI and every Spotify auth attempt would fail confusingly.
+for plain in spotify_client_id spotify_redirect_uri; do
+    value="$(bashio::config "${plain}" || true)"
+    [ "${value}" = "null" ] && value=""
+    # shellcheck disable=SC2163
+    export "$(echo "${plain}" | tr '[:lower:]' '[:upper:]')=${value}"
 done
 
 if bashio::var.has_value "${YOUVERSION_APP_KEY}"; then

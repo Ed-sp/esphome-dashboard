@@ -28,6 +28,9 @@ Configuration lives in two places, split by what each is good at.
 | `cache_seconds` | How long a render is reused before rebuilding it. Guards against a browser left open on the preview polling Home Assistant continuously; the display polls far more slowly regardless. |
 | `youversion_app_key` | Optional. Enables the verse of the day. |
 | `esv_api_key` | Optional. Alternative verse provider. |
+| `spotify_client_id` | Optional. From a Spotify Developer Dashboard app. Needed with the two below for the Music stat. |
+| `spotify_client_secret` | Optional, paired with the above. |
+| `spotify_redirect_uri` | Optional. Must exactly match a Redirect URI registered on that same Spotify app -- Spotify only accepts HTTPS or a loopback address, so this has to be a URL your Home Assistant is actually reachable on (Nabu Casa Cloud, or your own reverse proxy with a certificate). |
 
 **Keys belong here, not in `panel.yaml`.** They are typed `password`, so Home
 Assistant masks them in the interface, keeps them in the Supervisor's store
@@ -78,6 +81,7 @@ will stop the panel updating.
 | `/panel.png` | The image the display fetches. Honours `If-None-Match` and `If-Modified-Since`. |
 | `/status` | ETag, size and seconds until the display should next wake, in about 70 bytes. |
 | `/health` | Whether the last render used live data, and the reason if it did not. |
+| `/spotify/login` | One-time: redirects to Spotify for consent, once the three `spotify_*` options above are set. |
 
 ## What to expect on first run
 
@@ -92,8 +96,12 @@ the Home Assistant side first:
   26,000 requests a month.
 - **Bins** — the waste sensor may be reporting empty values. The log says so
   explicitly if it is.
-- **Stats** — telly and music hours need `history_stats` sensors; steps need
-  Health Connect enabling in the companion app on both phones.
+- **Stats** — telly hours need a `history_stats` sensor; steps need Health
+  Connect enabling in the companion app on both phones. Music reads from
+  Spotify directly: set the three `spotify_*` options, then visit
+  `/spotify/login` once to connect the account. It stays a dash until that's
+  done, and only counts listening from that point forward -- there's no way to
+  backfill further than Spotify's own recently-played history goes.
 
 Check `/health` first if the whole panel looks like the sample data — that means
 Home Assistant could not be reached and it fell back to the fixture scene.

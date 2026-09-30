@@ -168,14 +168,12 @@ stats:
       - media_player.edward_s_firetvstick
       - media_player.fire_tv
     state: playing
+  # Spotify's own listening history, not a speaker's "playing" state -- see
+  # panel/sources/spotify.py. Needs spotify_client_id, spotify_client_secret
+  # and spotify_redirect_uri set in the add-on's options, and a one-time visit
+  # to /spotify/login to connect the account. Reads as a dash until then.
   - label: Music
-    kind: history_hours
-    entities:
-      - media_player.lounge
-      - media_player.living_room
-      - media_player.downstairs
-      - media_player.kitchen_dot
-    state: playing
+    kind: spotify_hours
   # Add Hannah's Health Connect sensor as a second entity and change the label
   # to "Steps · Ed / Hannah"; until then this shows Ed's on its own rather than
   # holding the row at a dash.

@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import secrets
 import time
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime, parsedate_to_datetime
@@ -29,6 +30,7 @@ from . import build as builder
 from .config import Config, ConfigError, load
 from .hass import Hass, HassError
 from .render import fallback, layout
+from .sources import spotify
 
 log = logging.getLogger(__name__)
 
@@ -358,6 +360,57 @@ def create_app(config: Config | None = None) -> Flask:
     # page work both through Home Assistant's ingress path and on the bare port
     # the ESP32 uses.
     app.add_url_rule("/", "root", preview)
+
+    # The one-time Spotify consent round trip. Both routes trust whoever can
+    # reach them exactly as much as every other route here (ingress or the
+    # user's own HTTPS, no separate login) -- this is a single-user hobby
+    # panel, not a multi-tenant service, so a module-level CSRF token is
+    # proportionate rather than a real session store.
+    _pending_state: dict[str, str] = {}
+
+    @app.get("/spotify/login")
+    def spotify_login() -> Response:
+        if not (config.spotify_client_id and config.spotify_redirect_uri):
+            return Response(
+                "Set spotify_client_id, spotify_client_secret and "
+                "spotify_redirect_uri in the add-on's options first.",
+                status=400,
+            )
+        state = secrets.token_urlsafe(16)
+        _pending_state["state"] = state
+        url = spotify.authorize_url(
+            config.spotify_client_id, config.spotify_redirect_uri, state
+        )
+        return Response(status=302, headers={"Location": url})
+
+    @app.get("/spotify/callback")
+    def spotify_callback() -> Response:
+        error = request.args.get("error")
+        if error:
+            return Response(f"Spotify declined: {error}", status=400)
+
+        code = request.args.get("code")
+        state = request.args.get("state")
+        if not code or not state or state != _pending_state.get("state"):
+            return Response("Missing or mismatched state -- start again at /spotify/login.", status=400)
+        _pending_state.pop("state", None)
+
+        try:
+            tokens = spotify.exchange_code(
+                config.spotify_client_id,
+                config.spotify_client_secret,
+                code,
+                config.spotify_redirect_uri,
+            )
+            spotify_state = spotify.SpotifyState(config.spotify_state_path)
+            spotify_state.refresh_token = tokens["refresh_token"]
+            spotify_state.add_plays(spotify.backfill(tokens["access_token"]))
+            spotify_state.save()
+        except Exception as exc:  # noqa: BLE001 - report it, don't 500 on a bad hop
+            log.error("spotify callback failed: %s", exc)
+            return Response(f"Spotify connection failed: {exc}", status=500)
+
+        return Response("Spotify connected -- you can close this tab.")
 
     return app
 

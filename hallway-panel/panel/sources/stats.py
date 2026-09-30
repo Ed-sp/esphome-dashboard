@@ -13,8 +13,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ..config import Config
 from ..hass import Hass, State, window_start
 from ..model import Stat
+from . import spotify
 
 log = logging.getLogger(__name__)
 
@@ -85,14 +87,14 @@ def _sum(states: dict[str, State], spec: dict[str, Any]) -> str:
 
 
 def build(
+    config: Config,
     hass: Hass,
     states: dict[str, State],
-    specs: list[dict[str, Any]],
     *,
     days: int = 7,
 ) -> list[Stat]:
     out: list[Stat] = []
-    for spec in specs[:4]:
+    for spec in config.stats[:4]:
         kind = spec.get("kind")
         if kind == "history_hours":
             value = _history_hours(hass, spec, days)
@@ -100,6 +102,8 @@ def build(
             value = _pair(states, spec)
         elif kind == "sum_energy":
             value = _sum(states, spec)
+        elif kind == "spotify_hours":
+            value = spotify.poll(config)
         else:
             log.warning("unknown stat kind %r for %r", kind, spec.get("label"))
             value = NO_DATA
