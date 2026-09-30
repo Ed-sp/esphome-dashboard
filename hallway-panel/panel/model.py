@@ -75,7 +75,11 @@ class Event:
 @dataclass
 class Stat:
     label: str
-    value: str
+    value: str = ""
+    # Set instead of `value` for a stat that's really two numbers, one per
+    # person -- rendered as a column under each of Panel.stat_people's badges
+    # rather than a single right-aligned value.
+    pair: tuple[str, str] | None = None
 
 
 @dataclass
@@ -96,4 +100,8 @@ class Panel:
     events: list[Event] = field(default_factory=list)
     sky: str | None = None
     stats: list[Stat] = field(default_factory=list)
+    # The two badge letters (e.g. "E", "H") for stats that render as a pair --
+    # resolved once here from config.people, since the renderer itself is kept
+    # free of Home Assistant/config concepts.
+    stat_people: tuple[str, str] | None = None
     collect: Collect | None = None

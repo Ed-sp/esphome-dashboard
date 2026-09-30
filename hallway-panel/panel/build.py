@@ -79,6 +79,7 @@ def build(config: Config, hass: Hass) -> Panel:
         ),
         sky=guarded("sky", lambda: _sky_line(config, tz), None),
         stats=guarded("stats", lambda: stats.build(config, hass, states), []),
+        stat_people=tuple(p.badge for p in config.people[:2]) if len(config.people) >= 2 else None,
         collect=guarded(
             "collect",
             lambda: collect.for_date(datetime.now(tz).date(), config.raw.get("collect")),

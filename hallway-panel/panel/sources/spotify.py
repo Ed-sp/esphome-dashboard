@@ -209,17 +209,27 @@ def _to_ms(played_at: str) -> int:
 # ---------------------------------------------------------------------- poll
 
 
-def poll(config: Config) -> str:
-    """The per-render entry point: refresh the token, pull anything new, and
-    return the rolling week total. Never raises -- any failure just means the
-    stat reads NO_DATA until the next cycle, same as `_history_hours`.
+def state_path(config: Config, person: str) -> Path:
+    """Each person connects their own Spotify account, so each gets their own
+    state file -- derived from the single configured base path rather than a
+    second config option, e.g. "/data/spotify.json" -> "/data/spotify_ed.json".
+    """
+    base = config.spotify_state_path
+    return base.with_name(f"{base.stem}_{person}{base.suffix}")
+
+
+def poll(config: Config, person: str) -> str:
+    """The per-render, per-person entry point: refresh that person's token,
+    pull anything new, and return their rolling week total. Never raises --
+    any failure just means the stat reads NO_DATA until the next cycle, same
+    as `_history_hours`.
     """
     client_id = config.spotify_client_id
     client_secret = config.spotify_client_secret
     if not (client_id and client_secret):
         return NO_DATA
 
-    state = SpotifyState(config.spotify_state_path)
+    state = SpotifyState(state_path(config, person))
     if not state.refresh_token:
         return NO_DATA
 

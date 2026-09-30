@@ -161,6 +161,24 @@ calendar:
 
 stats:
   # Four slots in the bottom-right block. Each needs `label` and a `kind`.
+  # `pair` and `spotify_hours` are per-person -- one column per entry in
+  # `people:` above (first two only), under a small header of their badges.
+  # Listed first so that grid reads as one visual block; `history_hours` and
+  # `sum_energy` are single aggregate numbers and follow after.
+  #
+  # Spotify's own listening history, not a speaker's "playing" state -- see
+  # panel/sources/spotify.py. Needs spotify_client_id, spotify_client_secret
+  # and spotify_redirect_uri set in the add-on's options, and a one-time visit
+  # to /spotify/login?person=<key> for *each* person to connect their account.
+  # A column reads as a dash until that person has connected theirs.
+  - label: Music
+    kind: spotify_hours
+  # Add Hannah's Health Connect sensor as a second entity; until then her
+  # column reads as a dash rather than holding the whole row back.
+  - label: Steps
+    kind: pair
+    entities:
+      - sensor.edwards_s23_daily_steps
   - label: Telly
     kind: history_hours
     entities:
@@ -168,19 +186,6 @@ stats:
       - media_player.edward_s_firetvstick
       - media_player.fire_tv
     state: playing
-  # Spotify's own listening history, not a speaker's "playing" state -- see
-  # panel/sources/spotify.py. Needs spotify_client_id, spotify_client_secret
-  # and spotify_redirect_uri set in the add-on's options, and a one-time visit
-  # to /spotify/login to connect the account. Reads as a dash until then.
-  - label: Music
-    kind: spotify_hours
-  # Add Hannah's Health Connect sensor as a second entity and change the label
-  # to "Steps · Ed / Hannah"; until then this shows Ed's on its own rather than
-  # holding the row at a dash.
-  - label: Steps · Ed
-    kind: pair
-    entities:
-      - sensor.edwards_s23_daily_steps
   # A utility_meter on the Hildebrand Glow (DCC) daily figure. The DCC variant
   # only publishes "usage today" and no cumulative reading, but it is marked
   # total_increasing, so utility_meter reads the midnight reset as a reset

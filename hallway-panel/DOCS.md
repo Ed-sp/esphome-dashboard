@@ -81,7 +81,7 @@ will stop the panel updating.
 | `/panel.png` | The image the display fetches. Honours `If-None-Match` and `If-Modified-Since`. |
 | `/status` | ETag, size and seconds until the display should next wake, in about 70 bytes. |
 | `/health` | Whether the last render used live data, and the reason if it did not. |
-| `/spotify/login` | One-time: redirects to Spotify for consent, once the three `spotify_*` options above are set. |
+| `/spotify/login?person=<key>` | One-time per person (`<key>` is a person's `key` from `panel.yaml`'s `people:`, e.g. `ed` or `hannah`): redirects to Spotify for consent, once the three `spotify_*` options above are set. Each person connects their own account separately. |
 
 ## What to expect on first run
 
@@ -96,12 +96,15 @@ the Home Assistant side first:
   26,000 requests a month.
 - **Bins** — the waste sensor may be reporting empty values. The log says so
   explicitly if it is.
-- **Stats** — telly hours need a `history_stats` sensor; steps need Health
-  Connect enabling in the companion app on both phones. Music reads from
-  Spotify directly: set the three `spotify_*` options, then visit
-  `/spotify/login` once to connect the account. It stays a dash until that's
-  done, and only counts listening from that point forward -- there's no way to
-  backfill further than Spotify's own recently-played history goes.
+- **Stats** — Music and Steps show one column per person (from `people:`,
+  first two only), under a small header of their badges. Telly hours need a
+  `history_stats` sensor; steps need Health Connect enabling in the companion
+  app on each phone, and each person's column stays a dash until their sensor
+  exists. Music reads from Spotify directly: set the three `spotify_*`
+  options, then visit `/spotify/login?person=<key>` once *per person* to
+  connect their account. A column stays a dash until that person has
+  connected, and only counts listening from that point forward -- there's no
+  way to backfill further than Spotify's own recently-played history goes.
 
 Check `/health` first if the whole panel looks like the sample data — that means
 Home Assistant could not be reached and it fell back to the fixture scene.

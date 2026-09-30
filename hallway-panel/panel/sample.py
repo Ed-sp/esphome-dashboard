@@ -61,11 +61,12 @@ def panel() -> Panel:
         ],
         sky="Perseids peak tonight, after 23:00",
         stats=[
+            Stat("Music", pair=("6h 12m", "3h 40m")),
+            Stat("Steps", pair=("58k", "71k")),
             Stat("Telly", "9h 20m"),
-            Stat("Music", "6h 12m"),
-            Stat("Steps · Ed / Hannah", "58k / 71k"),
             Stat("Electricity", "84 kWh"),
         ],
+        stat_people=("E", "H"),
         # 13 August 2026 resolves to Trinity 10, so this matches what the live
         # collects table returns for the fixture's date.
         collect=Collect(

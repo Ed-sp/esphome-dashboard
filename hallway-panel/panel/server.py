@@ -370,6 +370,14 @@ def create_app(config: Config | None = None) -> Flask:
 
     @app.get("/spotify/login")
     def spotify_login() -> Response:
+        person = request.args.get("person")
+        valid = {p.key for p in config.people}
+        if not person or person not in valid:
+            return Response(
+                f"Pass ?person=<key>, one of: {', '.join(sorted(valid))}. "
+                "Each person connects their own Spotify account separately.",
+                status=400,
+            )
         if not (config.spotify_client_id and config.spotify_redirect_uri):
             return Response(
                 "Set spotify_client_id, spotify_client_secret and "
@@ -378,6 +386,7 @@ def create_app(config: Config | None = None) -> Flask:
             )
         state = secrets.token_urlsafe(16)
         _pending_state["state"] = state
+        _pending_state["person"] = person
         url = spotify.authorize_url(
             config.spotify_client_id, config.spotify_redirect_uri, state
         )
@@ -393,7 +402,10 @@ def create_app(config: Config | None = None) -> Flask:
         state = request.args.get("state")
         if not code or not state or state != _pending_state.get("state"):
             return Response("Missing or mismatched state -- start again at /spotify/login.", status=400)
+        person = _pending_state.pop("person", None)
         _pending_state.pop("state", None)
+        if not person:
+            return Response("Lost track of which person this was -- start again at /spotify/login.", status=400)
 
         try:
             tokens = spotify.exchange_code(
@@ -402,7 +414,7 @@ def create_app(config: Config | None = None) -> Flask:
                 code,
                 config.spotify_redirect_uri,
             )
-            spotify_state = spotify.SpotifyState(config.spotify_state_path)
+            spotify_state = spotify.SpotifyState(spotify.state_path(config, person))
             spotify_state.refresh_token = tokens["refresh_token"]
             spotify_state.add_plays(spotify.backfill(tokens["access_token"]))
             spotify_state.save()
@@ -410,7 +422,7 @@ def create_app(config: Config | None = None) -> Flask:
             log.error("spotify callback failed: %s", exc)
             return Response(f"Spotify connection failed: {exc}", status=500)
 
-        return Response("Spotify connected -- you can close this tab.")
+        return Response(f"Spotify connected for {person} -- you can close this tab.")
 
     return app
 
