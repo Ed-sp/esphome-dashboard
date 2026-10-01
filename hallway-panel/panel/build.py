@@ -56,7 +56,7 @@ def build(config: Config, hass: Hass) -> Panel:
         lambda: weather.hourly(hass, states, entity, tz, config.weather.get("hours", 24)),
         [],
     )
-    week = guarded("daily forecast", lambda: weather.daily(hass, states, entity, tz), [])
+    week = guarded("daily forecast", lambda: weather.daily(hass, entity, tz), [])
 
     return Panel(
         date_label=_date_label(tz),
