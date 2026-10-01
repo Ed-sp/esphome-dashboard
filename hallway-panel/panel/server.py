@@ -246,6 +246,29 @@ def next_wake_seconds(config: Config) -> int:
     return _next_change_cap(config, now, refresh.get("awake_minutes", 20) * 60)
 
 
+def _spotify_links(config: Config) -> str:
+    """One line per person: a login link, or a connected check mark.
+
+    Lets you start the one-time consent from the preview page rather than
+    hand-typing /spotify/login?person=<key> -- opens in a new tab so the
+    auto-refreshing preview underneath keeps running.
+    """
+    if not (config.spotify_client_id and config.spotify_redirect_uri):
+        return ""
+
+    rows = []
+    for person in config.people:
+        connected = bool(spotify.SpotifyState(spotify.state_path(config, person.key)).refresh_token)
+        if connected:
+            rows.append(f"{person.name}: connected")
+        else:
+            rows.append(
+                f'<a href="spotify/login?person={person.key}" target="_blank">'
+                f"Connect {person.name}'s Spotify</a>"
+            )
+    return "<p>" + " &middot; ".join(rows) + "</p>" if rows else ""
+
+
 def create_app(config: Config | None = None) -> Flask:
     config = config or load()
     app = Flask(__name__)
@@ -351,6 +374,7 @@ def create_app(config: Config | None = None) -> Flask:
                 height=geometry.height,
                 size=geometry.name,
                 banner=f'<p class="err">{note}</p>' if note else "",
+                spotify_links=_spotify_links(config),
             ),
             mimetype="text/html",
         )
@@ -447,4 +471,5 @@ _PREVIEW = """<!doctype html><meta charset="utf-8">
 <div class="bezel"><img src="panel.png?v={etag}" width="{width}" height="{height}" alt="panel"></div>
 <p>Reloads every 30s &middot; <a href="panel.png?force=1">force a re-render</a> &middot;
    <a href="health">health</a> &middot; <a href="status">status</a></p>
+{spotify_links}
 """
