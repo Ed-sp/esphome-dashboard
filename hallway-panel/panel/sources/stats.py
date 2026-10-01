@@ -2,8 +2,9 @@
 
 `pair` and `spotify_hours` are the two-per-person kinds -- one number per
 `config.people` entry (Steps off a sensor each, Music off each person's own
-Spotify history), rendered as a column under each person's badge rather than a
-single value. `history_hours` and `sum_energy` stay single aggregate numbers.
+Spotify history), joined into a single line with each value labelled by that
+person's badge, e.g. "58k E / 71k H". `history_hours` and `sum_energy` stay
+single aggregate numbers.
 
 A slot with no data renders an em dash rather than disappearing, so the block
 keeps its shape and the panel does not reflow week to week.
@@ -51,12 +52,25 @@ def _history_hours(hass: Hass, spec: dict[str, Any], days: int) -> str:
     return _hours_minutes(sum(totals.values()))
 
 
-def _pair(states: dict[str, State], spec: dict[str, Any]) -> tuple[str, str]:
+def _badges(config: Config) -> list[str]:
+    badges = [p.badge for p in config.people[:2]]
+    while len(badges) < 2:
+        badges.append("")
+    return badges
+
+
+def _labelled(values: list[str], badges: list[str]) -> str:
+    """"58k E / 71k H" -- each value suffixed with that person's badge."""
+    parts = [f"{value} {badge}".strip() for value, badge in zip(values, badges)]
+    return " / ".join(parts) if parts else NO_DATA
+
+
+def _pair(states: dict[str, State], spec: dict[str, Any], badges: list[str]) -> str:
     """One number per person, in `config.people` order.
 
     Tolerates a single entity so a head-to-head can be set up one phone at a
     time: Ed's steps show on their own until Hannah's sensor exists, rather than
-    the whole row sitting at a dash waiting for it -- the second column just
+    the whole row sitting at a dash waiting for it -- the second number just
     reads NO_DATA until then.
     """
     entities = (spec.get("entities") or [])[:2]
@@ -67,7 +81,7 @@ def _pair(states: dict[str, State], spec: dict[str, Any]) -> tuple[str, str]:
         values.append(_compact(number) if number is not None else NO_DATA)
     while len(values) < 2:
         values.append(NO_DATA)
-    return (values[0], values[1])
+    return _labelled(values, badges)
 
 
 def _sum(states: dict[str, State], spec: dict[str, Any]) -> str:
@@ -88,11 +102,11 @@ def _sum(states: dict[str, State], spec: dict[str, Any]) -> str:
     return f"{round(total)} {unit}".strip()
 
 
-def _spotify_pair(config: Config) -> tuple[str, str]:
+def _spotify_pair(config: Config, badges: list[str]) -> str:
     values = [spotify.poll(config, person.key) for person in config.people[:2]]
     while len(values) < 2:
         values.append(NO_DATA)
-    return (values[0], values[1])
+    return _labelled(values, badges)
 
 
 def build(
@@ -102,6 +116,7 @@ def build(
     *,
     days: int = 7,
 ) -> list[Stat]:
+    badges = _badges(config)
     out: list[Stat] = []
     for spec in config.stats[:4]:
         kind = spec.get("kind")
@@ -109,11 +124,11 @@ def build(
         if kind == "history_hours":
             out.append(Stat(label=label, value=_history_hours(hass, spec, days)))
         elif kind == "pair":
-            out.append(Stat(label=label, pair=_pair(states, spec)))
+            out.append(Stat(label=label, value=_pair(states, spec, badges)))
         elif kind == "sum_energy":
             out.append(Stat(label=label, value=_sum(states, spec)))
         elif kind == "spotify_hours":
-            out.append(Stat(label=label, pair=_spotify_pair(config)))
+            out.append(Stat(label=label, value=_spotify_pair(config, badges)))
         else:
             log.warning("unknown stat kind %r for %r", kind, label)
             out.append(Stat(label=label, value=NO_DATA))

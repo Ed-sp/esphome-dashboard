@@ -161,20 +161,20 @@ calendar:
 
 stats:
   # Four slots in the bottom-right block. Each needs `label` and a `kind`.
-  # `pair` and `spotify_hours` are per-person -- one column per entry in
-  # `people:` above (first two only), under a small header of their badges.
-  # Listed first so that grid reads as one visual block; `history_hours` and
-  # `sum_energy` are single aggregate numbers and follow after.
+  # `pair` and `spotify_hours` are per-person -- one number per entry in
+  # `people:` above (first two only), each labelled with that person's badge
+  # on one line, e.g. "58k E / 71k H". `history_hours` and `sum_energy` are
+  # single aggregate numbers.
   #
   # Spotify's own listening history, not a speaker's "playing" state -- see
   # panel/sources/spotify.py. Needs spotify_client_id, spotify_client_secret
   # and spotify_redirect_uri set in the add-on's options, and a one-time visit
   # to /spotify/login?person=<key> for *each* person to connect their account.
-  # A column reads as a dash until that person has connected theirs.
+  # A person's number reads as a dash until they've connected theirs.
   - label: Music
     kind: spotify_hours
   # Add Hannah's Health Connect sensor as a second entity; until then her
-  # column reads as a dash rather than holding the whole row back.
+  # number reads as a dash rather than holding the whole row back.
   - label: Steps
     kind: pair
     entities:

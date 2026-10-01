@@ -56,7 +56,6 @@ class Type:
 
     stat_label: int
     stat_value: int
-    stat_person: int  # the small "E"/"H" header over a pair stat's columns
 
 
 @dataclass(frozen=True)
@@ -139,13 +138,6 @@ class Geometry:
     collect_x: tuple[int, int]
     stats_divider_x: int
     stats_x: tuple[int, int]
-    # The two columns a pair stat's values right-align to; the second matches
-    # stats_x[1] -- kept explicit rather than reusing it by reference, in
-    # keeping with this file's "everything explicit" rule.
-    stats_pair_x: tuple[int, int]
-    # Baseline offset (negative, up) from a pair row to the small "E"/"H"
-    # header drawn once above the first such row.
-    stat_pair_header_dy: int
     stat_top: int
     stat_step: int
     stat_count: int
@@ -222,9 +214,7 @@ V2 = Geometry(
     collect_x=(12, 520),
     stats_divider_x=536,
     stats_x=(552, 788),
-    stats_pair_x=(680, 788),
-    stat_pair_header_dy=-11,
-    stat_top=431,
+    stat_top=428,
     stat_step=15,
     stat_count=4,
     collect_ladder=((13, 17, 3, 431), (12, 15, 4, 426), (11, 14, 5, 420), (10, 13, 5, 424)),
@@ -236,7 +226,7 @@ V2 = Geometry(
         alert_bar=13, alert_row=13,
         week_day=11, week_rain=9, week_high=14, week_low=11,
         event_badge=10, event_when=10, event_title=13, sky=11,
-        stat_label=11, stat_value=12, stat_person=10,
+        stat_label=11, stat_value=12,
     ),
 )
 
@@ -316,9 +306,7 @@ V1 = Geometry(
     collect_x=(10, 396),
     stats_divider_x=408,
     stats_x=(420, 630),
-    stats_pair_x=(534, 630),
-    stat_pair_header_dy=-10,
-    stat_top=340,
+    stat_top=338,
     stat_step=14,
     stat_count=3,
     collect_ladder=((12, 15, 3, 340), (11, 13, 4, 336), (10, 12, 4, 338), (9, 11, 5, 334)),
@@ -332,7 +320,7 @@ V1 = Geometry(
         alert_bar=12, alert_row=12,
         week_day=10, week_rain=8, week_high=13, week_low=10,
         event_badge=9, event_when=9, event_title=12, sky=10,
-        stat_label=10, stat_value=11, stat_person=9,
+        stat_label=10, stat_value=11,
     ),
 )
 

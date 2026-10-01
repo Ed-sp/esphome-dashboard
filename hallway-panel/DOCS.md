@@ -96,14 +96,15 @@ the Home Assistant side first:
   26,000 requests a month.
 - **Bins** — the waste sensor may be reporting empty values. The log says so
   explicitly if it is.
-- **Stats** — Music and Steps show one column per person (from `people:`,
-  first two only), under a small header of their badges. Telly hours need a
-  `history_stats` sensor; steps need Health Connect enabling in the companion
-  app on each phone, and each person's column stays a dash until their sensor
-  exists. Music reads from Spotify directly: set the three `spotify_*`
-  options, then visit `/spotify/login?person=<key>` once *per person* to
-  connect their account. A column stays a dash until that person has
-  connected, and only counts listening from that point forward -- there's no
+- **Stats** — Music and Steps show one number per person (from `people:`,
+  first two only), each labelled with that person's badge on one line, e.g.
+  "58k E / 71k H". Telly hours need a `history_stats` sensor; steps need
+  Health Connect enabling in the companion app on each phone, and each
+  person's number stays a dash until their sensor exists. Music reads from
+  Spotify directly: set the three `spotify_*` options, then visit
+  `/spotify/login?person=<key>` once *per person* to connect their account. A
+  person's number stays a dash until they've connected, and only counts
+  listening from that point forward -- there's no
   way to backfill further than Spotify's own recently-played history goes.
 
 Check `/health` first if the whole panel looks like the sample data — that means

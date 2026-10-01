@@ -284,21 +284,10 @@ def _bottom(c: Canvas, g: Geometry, p: Panel) -> None:
         _eyebrow(c, g, g.stats_x[0], g.bottom_eyebrow_y, "This week")
         label = Text("sans", g.type.stat_label)
         value = Text("sans_bold", g.type.stat_value)
-        person = Text("sans_bold", g.type.stat_person, tracking=0.4)
-        header_drawn = False
         for i, stat in enumerate(p.stats[: g.stat_count]):
             y = g.stat_top + i * g.stat_step
             c.text(g.stats_x[0], y, stat.label, label)
-            if stat.pair is not None:
-                if not header_drawn and p.stat_people:
-                    header_y = y + g.stat_pair_header_dy
-                    c.text(g.stats_pair_x[0], header_y, p.stat_people[0], person, anchor="right")
-                    c.text(g.stats_pair_x[1], header_y, p.stat_people[1], person, anchor="right")
-                    header_drawn = True
-                c.text(g.stats_pair_x[0], y, stat.pair[0], value, anchor="right")
-                c.text(g.stats_pair_x[1], y, stat.pair[1], value, anchor="right")
-            else:
-                c.text(g.stats_x[1], y, stat.value, value, anchor="right")
+            c.text(g.stats_x[1], y, stat.value, value, anchor="right")
 
 
 # ------------------------------------------------------------------ entry
