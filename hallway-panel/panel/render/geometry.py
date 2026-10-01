@@ -100,8 +100,7 @@ class Geometry:
     commute_chip_h: int
     leaving_rule_y: int
 
-    # needs you
-    alerts_eyebrow_y: int
+    # needs you (no heading drawn here -- see layout._needs_you)
     alert_top: int
     alert_bar_h: int
     alert_row_h: int
@@ -170,21 +169,26 @@ V2 = Geometry(
     graph_eyebrow_y=60,
     graph_x=(16, 480),
     graph_top=80,
-    graph_floor=138,
-    graph_base=146,
-    graph_labels_y=156,
-    graph_rule_y=170,
-    leaving_eyebrow_y=188,
-    commute_rows=(198, 240),
+    # +26 over the original 138/146/156/170. alert_bottom below is pinned to
+    # the same place it always was (hard up against bottom_rule_y) -- what
+    # changed is alert_top moving down by this same 26px, so the needs-you
+    # block's budget shrinks from ~3 rows to ~2, and the graph gets the
+    # difference. In practice it rarely holds more than a couple of lines
+    # anyway, so this is space the graph can use and the bin reminder won't miss.
+    graph_floor=164,
+    graph_base=172,
+    graph_labels_y=182,
+    graph_rule_y=196,
+    leaving_eyebrow_y=214,
+    commute_rows=(224, 266),
     commute_icon=30,
     commute_text_x=52,
     commute_name_dy=12,
     commute_time_dy=31,
     commute_chip_dy=15,
     commute_chip_h=19,
-    leaving_rule_y=286,
-    alerts_eyebrow_y=304,
-    alert_top=312,
+    leaving_rule_y=312,
+    alert_top=338,
     alert_bar_h=26,
     alert_row_h=24,
     alert_bottom=394,
@@ -264,6 +268,10 @@ V1 = Geometry(
     # Pulled 4px tighter than looks comfortable in isolation, so that the alert
     # block below clears two rows instead of one. A bin alert plus nothing else
     # is a worse panel than a slightly closer pair of commutes.
+    #
+    # Unlike V2, there's no spare height to reclaim here for the graph: this
+    # budget is already sized for ~2 rows (304 - 250 = 54px), not 3, so
+    # shifting it down would just clip the second alert against bottom_rule_y.
     commute_rows=(156, 192),
     commute_icon=26,
     commute_text_x=44,
@@ -272,7 +280,6 @@ V1 = Geometry(
     commute_chip_dy=14,
     commute_chip_h=18,
     leaving_rule_y=228,
-    alerts_eyebrow_y=242,
     alert_top=250,
     alert_bar_h=24,
     alert_row_h=22,
