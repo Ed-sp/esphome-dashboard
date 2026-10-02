@@ -179,13 +179,31 @@ stats:
     kind: pair
     entities:
       - sensor.edwards_s23_daily_steps
-  - label: Telly
-    kind: history_hours
+      - sensor.hannah_s_phone_daily_steps
+  # Each phone's Tasker pushes its own per-app usage minutes to a sensor (via
+  # POST /api/states/<entity_id> with a long-lived token, same mechanism this
+  # add-on itself uses) -- Tasker's "Usage Access" permission is what lets it
+  # read Android's UsageStatsManager. Where someone has more than one device,
+  # sum them into a single per-person number with a small HA template sensor
+  # first; `pair` here only takes one entity per person, same as Steps.
+  #
+  # Proof of concept with Instagram; real entity_ids still to be wired up.
+  - label: Instagram
+    kind: pair
     entities:
-      - media_player.edward_s_fire_tv_cube
-      - media_player.edward_s_firetvstick
-      - media_player.fire_tv
-    state: playing
+      - sensor.ed_instagram_minutes      # placeholder -- replace once Tasker is pushing this
+      - sensor.hannah_instagram_minutes  # placeholder -- replace once Tasker is pushing this
+  # Fire TV Cube's "playing" state never gave a real per-person number --
+  # hidden rather than deleted, since the plan is to try the same
+  # Tasker/UsageStatsManager approach once it's sideloaded onto the Cube
+  # (it's Android-based under Fire OS).
+  # - label: Telly
+  #   kind: history_hours
+  #   entities:
+  #     - media_player.edward_s_fire_tv_cube
+  #     - media_player.edward_s_firetvstick
+  #     - media_player.fire_tv
+  #   state: playing
   # A utility_meter on the Hildebrand Glow (DCC) daily figure. The DCC variant
   # only publishes "usage today" and no cumulative reading, but it is marked
   # total_increasing, so utility_meter reads the midnight reset as a reset

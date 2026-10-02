@@ -63,7 +63,7 @@ def panel() -> Panel:
         stats=[
             Stat("Music", "6h 12m E / 3h 40m H"),
             Stat("Steps", "58k E / 71k H"),
-            Stat("Telly", "9h 20m"),
+            Stat("Instagram", "22m E / 41m H"),
             Stat("Electricity", "84 kWh"),
         ],
         # 13 August 2026 resolves to Trinity 10, so this matches what the live
