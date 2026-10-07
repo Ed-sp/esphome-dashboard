@@ -2,7 +2,7 @@
 
 The rules, evaluated top to bottom, first match wins:
 
-1.  After `hide_after`, or nobody home         -> nothing at all
+1.  Weekend, after `hide_after`, or nobody home -> nothing at all
 2.  Before `bike_cutoff`, Ed home, dry         -> Ed by bike (+ Hannah if home)
 3.  Before `bike_cutoff`, Ed home, rain        -> Ed by car  (+ Hannah if home)
 4.  Between the two, Ed home                   -> one combined car journey
@@ -87,7 +87,8 @@ def build(
     hours: list[Hour],
     tz: ZoneInfo,
 ) -> list[Commute]:
-    now = datetime.now(tz).time()
+    today = datetime.now(tz)
+    now = today.time()
     rules = config.commute["rules"]
 
     ed = config.person("ed")
@@ -96,7 +97,11 @@ def build(
     hannah_home = _at_home(states, hannah.person)
 
     # Rule 1
-    if now >= config.rule_time("hide_after") or not (ed_home or hannah_home):
+    if (
+        today.weekday() >= 5
+        or now >= config.rule_time("hide_after")
+        or not (ed_home or hannah_home)
+    ):
         return []
 
     office = config.ed_workplace
